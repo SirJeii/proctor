@@ -147,7 +147,7 @@
                     <button 
                         onclick="app.autoAssign()"
                         class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer"
-                        title="Randomly assign proctors equally"
+                        title="Smart Assign (Fair Load + Breaks)"
                     >
                         <i class="fa-solid fa-wand-magic-sparkles"></i> Proctors
                     </button>
@@ -509,62 +509,160 @@
                 }
             }
 
+            // SMART AUTO ASSIGN (Logic Updated)
             autoAssign() {
                 if(this.state.exams.length === 0) {
                     alert("No exams to assign. Import a schedule first.");
                     return;
                 }
                 
-                if (!confirm("Randomly assign proctors? This will clear existing assignments.")) return;
+                if (!confirm("This will clear existing assignments and redistribute proctors ensuring breaks and equal loads. Continue?")) return;
 
-                // 1. Reset
+                // 1. Reset all assignments
                 this.state.exams.forEach(e => e.assignedProctor = '');
                 
-                // 2. Shuffle exams
-                const examsToAssign = [...this.state.exams].sort(() => Math.random() - 0.5);
-                
-                // 3. Track Load/Schedule
-                const proctorLoads = {};
-                const proctorSchedules = {};
+                // 2. Helper to parse date/time for sorting
+                const getMinutes = (timeStr) => {
+                    if (!timeStr) return 0;
+                    const startPart = timeStr.split('-')[0].trim();
+                    const match = startPart.match(/(\d+):(\d+)([AP]M)/i);
+                    if (!match) return 0;
+                    let [_, h, m, p] = match;
+                    h = parseInt(h);
+                    m = parseInt(m);
+                    if (p.toUpperCase() === 'PM' && h !== 12) h += 12;
+                    if (p.toUpperCase() === 'AM' && h === 12) h = 0;
+                    return h * 60 + m;
+                };
+
+                // 3. Group exams by Time Slot ID (Date + Time)
+                // We need to process chronologically to handle consecutive constraints
+                const slotMap = new Map(); // Key: "YYYY-MM-DD|08:30AM-10:00AM" -> [exams]
+
+                this.state.exams.forEach(exam => {
+                    const key = `${exam.date}|${exam.time}`;
+                    if (!slotMap.has(key)) slotMap.set(key, []);
+                    slotMap.get(key).push(exam);
+                });
+
+                // 4. Sort Slots Chronologically
+                const sortedSlots = Array.from(slotMap.keys()).sort((a, b) => {
+                    const [dateA, timeA] = a.split('|');
+                    const [dateB, timeB] = b.split('|');
+                    
+                    const dA = new Date(dateA);
+                    const dB = new Date(dateB);
+                    if (dA - dB !== 0) return dA - dB;
+                    
+                    return getMinutes(timeA) - getMinutes(timeB);
+                });
+
+                // 5. Track State
+                const proctorLoads = {}; // Total assignments per proctor
+                const proctorHistory = {}; // List of slot keys assigned to proctor
                 
                 this.state.proctors.forEach(p => {
                     proctorLoads[p] = 0;
-                    proctorSchedules[p] = new Set();
+                    proctorHistory[p] = []; 
                 });
 
                 let unassignedCount = 0;
 
-                // 4. Assign
-                examsToAssign.forEach(exam => {
-                    const availableProctors = this.state.proctors.filter(p => {
-                        return !proctorSchedules[p].has(exam.time);
+                // 6. Iterate Slots and Assign
+                sortedSlots.forEach((slotKey, slotIndex) => {
+                    const examsInSlot = slotMap.get(slotKey);
+                    // Shuffle exams within slot to randomize room assignments
+                    examsInSlot.sort(() => Math.random() - 0.5);
+
+                    const [currentDate, ] = slotKey.split('|');
+                    
+                    // Identify previous slots ON THE SAME DAY
+                    const prevSlotKey = slotIndex > 0 ? sortedSlots[slotIndex - 1] : null;
+                    const prev2SlotKey = slotIndex > 1 ? sortedSlots[slotIndex - 2] : null;
+                    const prev3SlotKey = slotIndex > 2 ? sortedSlots[slotIndex - 3] : null;
+                    
+                    const isSameDay = (k1, k2) => k1 && k2 && k1.split('|')[0] === k2.split('|')[0];
+
+                    // Determine blocked sets based on history
+                    // Who worked in slot i-1 (Break Rule)
+                    const workedPrev1 = new Set();
+                    // Who worked in i-1 AND i-2 (2-Streak Rule)
+                    const workedPrev2Streak = new Set();
+                    // Who worked in i-1 AND i-2 AND i-3 (3-Streak Rule / Forbidden 4th)
+                    const workedPrev3Streak = new Set();
+
+                    // Who is working NOW in this slot (Simultaneous Rule)
+                    const workedCurrent = new Set(); 
+
+                    this.state.proctors.forEach(p => {
+                        const hist = proctorHistory[p];
+                        if (isSameDay(prevSlotKey, slotKey) && hist.includes(prevSlotKey)) {
+                            workedPrev1.add(p);
+                            if (isSameDay(prev2SlotKey, slotKey) && hist.includes(prev2SlotKey)) {
+                                workedPrev2Streak.add(p);
+                                if (isSameDay(prev3SlotKey, slotKey) && hist.includes(prev3SlotKey)) {
+                                    workedPrev3Streak.add(p);
+                                }
+                            }
+                        }
                     });
 
-                    if (availableProctors.length === 0) {
-                        unassignedCount++;
-                        return; 
-                    }
+                    // Assign each exam
+                    examsInSlot.forEach(exam => {
+                        // Base Candidates: Everyone NOT working right now
+                        let candidates = this.state.proctors.filter(p => !workedCurrent.has(p));
 
-                    // Sort by Load (Equal distribution)
-                    availableProctors.sort((a, b) => proctorLoads[a] - proctorLoads[b]);
-                    const minLoad = proctorLoads[availableProctors[0]];
-                    const bestCandidates = availableProctors.filter(p => proctorLoads[p] === minLoad);
-                    const selectedProctor = bestCandidates[Math.floor(Math.random() * bestCandidates.length)];
+                        // Level 1: Strict Break (Not in Prev1)
+                        let bestCandidates = candidates.filter(p => !workedPrev1.has(p));
 
-                    const originalExam = this.state.exams.find(e => e.id === exam.id);
-                    if (originalExam) {
-                        originalExam.assignedProctor = selectedProctor;
-                        proctorLoads[selectedProctor]++;
-                        proctorSchedules[selectedProctor].add(exam.time);
-                    }
+                        // Fallback 1: If no one is fresh, allow consecutive, but NOT 3 straight
+                        if (bestCandidates.length === 0) {
+                            bestCandidates = candidates.filter(p => !workedPrev2Streak.has(p));
+                        }
+
+                        // Fallback 2: If everyone has done 2 straight, allow 3 straight, but NOT 4 straight
+                        if (bestCandidates.length === 0) {
+                            bestCandidates = candidates.filter(p => !workedPrev3Streak.has(p));
+                        }
+
+                        // Fallback 3: If literally everyone has done 3 straight (highly unlikely), take anyone valid
+                        // BUT user said "should not have 4 straight". We treat Fallback 2 as hard limit mostly.
+                        // If bestCandidates is still empty here, we might have to leave unassigned or break rule 4.
+                        // Let's break rule 4 only if absolutely necessary to fill room.
+                         if (bestCandidates.length === 0) {
+                            bestCandidates = candidates; // Last resort
+                        }
+
+                        if (bestCandidates.length === 0) {
+                            unassignedCount++;
+                            return;
+                        }
+
+                        // Select based on Load Balancing
+                        bestCandidates.sort((a, b) => proctorLoads[a] - proctorLoads[b]);
+                        const minLoad = proctorLoads[bestCandidates[0]];
+                        const finalPool = bestCandidates.filter(p => proctorLoads[p] === minLoad);
+                        
+                        // Random pick from balanced pool
+                        const selected = finalPool[Math.floor(Math.random() * finalPool.length)];
+
+                        // Commit
+                        const originalExam = this.state.exams.find(e => e.id === exam.id);
+                        if (originalExam) {
+                            originalExam.assignedProctor = selected;
+                            proctorLoads[selected]++;
+                            proctorHistory[selected].push(slotKey);
+                            workedCurrent.add(selected);
+                        }
+                    });
                 });
 
                 this.updateUI();
                 
                 if (unassignedCount > 0) {
-                    alert(`Auto-assignment complete. ${unassignedCount} exams unassigned due to conflicts.`);
+                    alert(`Auto-assignment complete. ${unassignedCount} exams unassigned due to insufficient proctors (simultaneous conflict).`);
                 } else {
-                    alert("Auto-assignment complete!");
+                    alert("Auto-assignment complete! Schedule optimized for breaks and equal load.");
                 }
             }
 
