@@ -14,6 +14,10 @@
     <!-- PDF Generation Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- Zip & File Saving Libraries (NEW) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -30,12 +34,27 @@
         .modal-backdrop {
             background-color: rgba(15, 23, 42, 0.9);
         }
+        
+        /* Loader */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 20px;
+            height: 20px;
+            -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
     <!-- Level Selection Modal (Overlay) -->
-    <div id="level-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+    <div id="level-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
         <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl text-center transform transition-all scale-100">
             <div class="mb-6 bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-blue-600">
                 <i class="fa-solid fa-graduation-cap text-2xl"></i>
@@ -65,27 +84,98 @@
 
     <!-- Export Options Modal (Overlay) -->
     <div id="export-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
-        <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl text-center">
+        <div class="bg-white rounded-2xl p-8 max-w-lg w-full shadow-2xl text-center">
             <div class="mb-4 bg-red-100 w-14 h-14 rounded-full flex items-center justify-center mx-auto text-red-600">
-                <i class="fa-solid fa-file-pdf text-xl"></i>
+                <i class="fa-solid fa-file-zipper text-xl"></i>
             </div>
-            <h2 class="text-xl font-bold text-slate-800 mb-2">Export PDF Schedule</h2>
-            <p class="text-slate-500 mb-6 text-sm">Choose how you want to organize the report.</p>
+            <h2 class="text-xl font-bold text-slate-800 mb-2">Export Zipped Schedules</h2>
+            <p class="text-slate-500 mb-6 text-sm">Separate files will be created and zipped for easier distribution.</p>
             
             <div class="grid grid-cols-2 gap-4 mb-4">
-                <button onclick="app.generatePDF('section')" class="p-4 rounded-xl border border-slate-200 hover:border-red-500 hover:bg-red-50 transition-all group">
+                <button onclick="app.generateZippedPDFs('section')" class="p-4 rounded-xl border border-slate-200 hover:border-red-500 hover:bg-red-50 transition-all group">
                     <i class="fa-solid fa-layer-group text-2xl mb-2 text-slate-400 group-hover:text-red-500"></i>
                     <span class="block font-bold text-slate-700 text-sm">By Section</span>
-                    <span class="text-xs text-slate-400">For Classes/Bulletin</span>
+                    <span class="text-xs text-slate-400">One PDF per Section</span>
                 </button>
                 
-                <button onclick="app.generatePDF('proctor')" class="p-4 rounded-xl border border-slate-200 hover:border-red-500 hover:bg-red-50 transition-all group">
+                <button onclick="app.generateZippedPDFs('proctor')" class="p-4 rounded-xl border border-slate-200 hover:border-red-500 hover:bg-red-50 transition-all group">
                     <i class="fa-solid fa-user-tie text-2xl mb-2 text-slate-400 group-hover:text-red-500"></i>
                     <span class="block font-bold text-slate-700 text-sm">By Proctor</span>
-                    <span class="text-xs text-slate-400">For Faculty Loads</span>
+                    <span class="text-xs text-slate-400">One PDF per Faculty</span>
+                </button>
+
+                <button onclick="app.generateZippedPDFs('room')" class="p-4 rounded-xl border border-slate-200 hover:border-red-500 hover:bg-red-50 transition-all group">
+                    <i class="fa-solid fa-door-open text-2xl mb-2 text-slate-400 group-hover:text-red-500"></i>
+                    <span class="block font-bold text-slate-700 text-sm">By Room</span>
+                    <span class="text-xs text-slate-400">One PDF per Room</span>
+                </button>
+
+                <button onclick="app.generateZippedPDFs('day')" class="p-4 rounded-xl border border-slate-200 hover:border-red-500 hover:bg-red-50 transition-all group">
+                    <i class="fa-solid fa-calendar-day text-2xl mb-2 text-slate-400 group-hover:text-red-500"></i>
+                    <span class="block font-bold text-slate-700 text-sm">By Day</span>
+                    <span class="text-xs text-slate-400">One PDF per Date</span>
                 </button>
             </div>
+            
+            <div id="export-loading" class="hidden flex items-center justify-center gap-2 text-sm text-blue-600 mb-4">
+                <div class="loader"></div> Generating Files...
+            </div>
+
             <button onclick="document.getElementById('export-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-sm underline">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Availability Modal (Overlay) -->
+    <div id="availability-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-slate-800">
+                    <i class="fa-solid fa-user-clock text-blue-600 mr-2"></i>
+                    <span id="avail-modal-title">Proctor Availability</span>
+                </h2>
+                <button onclick="app.closeAvailabilityModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <p class="text-sm text-slate-500 mb-4">Set time blocks when this proctor is <strong>unavailable</strong>.</p>
+            
+            <!-- Add New Rule -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4">
+                <div class="grid grid-cols-3 gap-2 mb-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Date</label>
+                        <!-- Date Selection: Checkbox OR Date Picker -->
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <input type="checkbox" id="avail-everyday-check" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer" onchange="app.toggleDateInput()" checked>
+                            <label for="avail-everyday-check" class="text-xs text-slate-700 cursor-pointer select-none">Every Day</label>
+                        </div>
+                        <input type="date" id="avail-date-input" class="w-full text-sm border-slate-300 rounded-lg p-1.5 border focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-400 transition-colors" disabled>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Start Time</label>
+                        <input type="time" id="avail-start-input" class="w-full text-sm border-slate-300 rounded-lg p-2 border focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">End Time</label>
+                        <input type="time" id="avail-end-input" class="w-full text-sm border-slate-300 rounded-lg p-2 border focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+                <button onclick="app.addAvailabilityRule()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg transition-colors">
+                    Add Unavailable Block
+                </button>
+            </div>
+
+            <!-- List of Rules -->
+            <div class="max-h-60 overflow-y-auto">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Current Restrictions</h3>
+                <div id="avail-rules-list" class="space-y-2">
+                    <!-- Populated by JS -->
+                </div>
+                <div id="avail-empty-msg" class="text-center py-4 text-slate-400 text-sm hidden">
+                    No restrictions set. Available all day.
+                </div>
+            </div>
         </div>
     </div>
 
@@ -167,6 +257,15 @@
                         title="Export CSV Data"
                     >
                         <i class="fa-solid fa-download"></i> CSV
+                    </button>
+
+                    <!-- NEW: Reset Button -->
+                    <button 
+                        onclick="app.resetData()"
+                        class="bg-slate-700 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer"
+                        title="Reset All Data"
+                    >
+                        <i class="fa-solid fa-trash-arrow-up"></i>
                     </button>
                 </div>
             </div>
@@ -290,18 +389,91 @@
             'Tertiary': ['202', '203', '204', '205', '305', '306', '308', '309', '310', 'CL1', 'CL2', 'CL3', 'CL4']
         };
 
+        // --- Helper Utilities ---
+        const TimeUtils = {
+            // "08:30AM" or "14:30" -> minutes from midnight
+            toMinutes: (timeStr) => {
+                if (!timeStr) return 0;
+                // Try 12-hour format first
+                let match = timeStr.match(/(\d+):(\d+)\s*([APap][Mm])/);
+                if (match) {
+                    let [_, h, m, p] = match;
+                    h = parseInt(h);
+                    m = parseInt(m);
+                    if (p.toUpperCase() === 'PM' && h !== 12) h += 12;
+                    if (p.toUpperCase() === 'AM' && h === 12) h = 0;
+                    return h * 60 + m;
+                }
+                // Try 24-hour format
+                match = timeStr.match(/(\d+):(\d+)/);
+                if (match) {
+                    return parseInt(match[1]) * 60 + parseInt(match[2]);
+                }
+                return 0;
+            },
+            
+            // "08:30AM - 10:00AM" -> {start: min, end: min}
+            parseRange: (rangeStr) => {
+                const parts = rangeStr.split('-').map(s => s.trim());
+                if (parts.length !== 2) return null;
+                return {
+                    start: TimeUtils.toMinutes(parts[0]),
+                    end: TimeUtils.toMinutes(parts[1])
+                };
+            }
+        };
+
         // --- App Logic ---
         class App {
             constructor() {
-                this.state = {
-                    level: null, // 'SHS' or 'Tertiary'
-                    exams: [...INITIAL_EXAMS],
-                    proctors: [...INITIAL_PROCTORS],
-                    activeTab: 'schedule',
-                    searchQuery: ''
-                };
+                // Initialize State with persistence check
+                const savedState = localStorage.getItem('proctorApp_v2');
+                
+                if (savedState) {
+                    try {
+                        const parsed = JSON.parse(savedState);
+                        this.state = {
+                            ...parsed,
+                            activeTab: 'schedule', // Always reset UI state
+                            searchQuery: '',
+                            editingProctor: null
+                        };
+                    } catch(e) {
+                        console.error('Save file corrupted, resetting.');
+                        this.state = this.getDefaultState();
+                    }
+                } else {
+                    this.state = this.getDefaultState();
+                }
                 
                 this.init();
+            }
+
+            getDefaultState() {
+                return {
+                    level: null, 
+                    exams: [...INITIAL_EXAMS],
+                    proctors: [...INITIAL_PROCTORS],
+                    unavailability: {}
+                };
+            }
+
+            saveState() {
+                // Only save essential data
+                const dataToSave = {
+                    level: this.state.level,
+                    exams: this.state.exams,
+                    proctors: this.state.proctors,
+                    unavailability: this.state.unavailability
+                };
+                localStorage.setItem('proctorApp_v2', JSON.stringify(dataToSave));
+            }
+
+            resetData() {
+                if(confirm("Are you sure you want to delete all saved data and start fresh?")) {
+                    localStorage.removeItem('proctorApp_v2');
+                    location.reload();
+                }
             }
 
             init() {
@@ -321,8 +493,144 @@
 
                 // Initial Render (will show empty state)
                 this.updateUI();
-                // Ensure modal is visible
-                document.getElementById('level-modal').classList.remove('hidden');
+                
+                // Show modal only if level isn't set yet
+                if (!this.state.level) {
+                    document.getElementById('level-modal').classList.remove('hidden');
+                } else {
+                    // Show badge if level exists
+                    const badge = document.getElementById('level-badge');
+                    badge.innerText = this.state.level;
+                    badge.classList.remove('hidden');
+                }
+            }
+
+            // --- Availability Management ---
+
+            openAvailabilityModal(proctorName) {
+                this.state.editingProctor = proctorName;
+                document.getElementById('avail-modal-title').innerText = `${proctorName} Availability`;
+                
+                // Reset inputs
+                document.getElementById('avail-everyday-check').checked = true;
+                this.toggleDateInput();
+                document.getElementById('avail-date-input').value = '';
+                document.getElementById('avail-start-input').value = '';
+                document.getElementById('avail-end-input').value = '';
+
+                this.renderAvailabilityRules();
+                document.getElementById('availability-modal').classList.remove('hidden');
+            }
+
+            closeAvailabilityModal() {
+                this.state.editingProctor = null;
+                document.getElementById('availability-modal').classList.add('hidden');
+            }
+
+            toggleDateInput() {
+                const isEveryDay = document.getElementById('avail-everyday-check').checked;
+                const dateInput = document.getElementById('avail-date-input');
+                dateInput.disabled = isEveryDay;
+                if(isEveryDay) dateInput.value = '';
+            }
+
+            addAvailabilityRule() {
+                const proctor = this.state.editingProctor;
+                if (!proctor) return;
+
+                const isEveryDay = document.getElementById('avail-everyday-check').checked;
+                const dateVal = document.getElementById('avail-date-input').value;
+                const start = document.getElementById('avail-start-input').value;
+                const end = document.getElementById('avail-end-input').value;
+
+                if (!isEveryDay && !dateVal) {
+                    alert("Please select a date or check 'Every Day'.");
+                    return;
+                }
+
+                if (!start || !end) {
+                    alert("Please enter both start and end times.");
+                    return;
+                }
+
+                if (!this.state.unavailability[proctor]) {
+                    this.state.unavailability[proctor] = [];
+                }
+
+                this.state.unavailability[proctor].push({
+                    date: isEveryDay ? null : dateVal,
+                    start,
+                    end
+                });
+
+                this.saveState(); // Save changes
+                this.renderAvailabilityRules();
+                this.renderProctorList(); // Update badge in list
+            }
+
+            removeAvailabilityRule(index) {
+                const proctor = this.state.editingProctor;
+                if (!proctor || !this.state.unavailability[proctor]) return;
+                
+                this.state.unavailability[proctor].splice(index, 1);
+                this.saveState(); // Save changes
+                this.renderAvailabilityRules();
+                this.renderProctorList(); // Update badge
+            }
+
+            renderAvailabilityRules() {
+                const proctor = this.state.editingProctor;
+                const list = document.getElementById('avail-rules-list');
+                const emptyMsg = document.getElementById('avail-empty-msg');
+                const rules = this.state.unavailability[proctor] || [];
+
+                if (rules.length === 0) {
+                    list.innerHTML = '';
+                    emptyMsg.classList.remove('hidden');
+                    return;
+                }
+
+                emptyMsg.classList.add('hidden');
+                list.innerHTML = rules.map((rule, idx) => `
+                    <div class="flex justify-between items-center bg-red-50 text-red-700 p-2 rounded text-sm border border-red-100">
+                        <div>
+                            <span class="font-bold mr-2">${rule.date ? rule.date : 'Every Day'}</span>
+                            <span>${this.formatTime12h(rule.start)} - ${this.formatTime12h(rule.end)}</span>
+                        </div>
+                        <button onclick="app.removeAvailabilityRule(${idx})" class="text-red-400 hover:text-red-600">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
+            
+            formatTime12h(time24) {
+                const [h, m] = time24.split(':');
+                const H = parseInt(h);
+                const suffix = H >= 12 ? 'PM' : 'AM';
+                const hour12 = H % 12 || 12;
+                return `${hour12}:${m} ${suffix}`;
+            }
+
+            // Check if proctor is unavailable during a specific exam slot
+            isProctorUnavailable(proctor, examDate, examTimeRange) {
+                const rules = this.state.unavailability[proctor];
+                if (!rules || rules.length === 0) return false;
+
+                const examTime = TimeUtils.parseRange(examTimeRange);
+                if (!examTime) return false;
+
+                return rules.some(rule => {
+                    // Check date matching
+                    if (rule.date && rule.date !== examDate) return false;
+
+                    // Convert rule times to minutes
+                    const ruleStart = TimeUtils.toMinutes(rule.start);
+                    const ruleEnd = TimeUtils.toMinutes(rule.end);
+
+                    // Check Overlap: (StartA < EndB) && (EndA > StartB)
+                    return (examTime.start < ruleEnd) && (examTime.end > ruleStart);
+                });
             }
 
             // --- Level Selection ---
@@ -336,13 +644,13 @@
                 
                 // Hide Modal
                 document.getElementById('level-modal').classList.add('hidden');
+                this.saveState(); // Save selection
             }
 
             // --- Import / Export ---
 
             downloadTemplate() {
                 const headers = ['Day', 'Date', 'Time', 'Subject', 'Instructor', 'Room', 'Section'];
-                // Room is explicitly empty in template
                 const example = ['Monday', '2025-12-06', '08:30AM - 10:00AM', 'Introduction to Computing', 'Mr. Smith', '', 'IT101'];
                 
                 const csvContent = "data:text/csv;charset=utf-8," 
@@ -413,7 +721,6 @@
                         time: row[idx.time],
                         subject: row[idx.subject].replace(/^"|"$/g, ''),
                         instructor: row[idx.instructor],
-                        // If room column exists and has value, use it. Otherwise 'TBA'
                         room: (idx.room !== -1 && row[idx.room]) ? row[idx.room] : 'TBA',
                         section: idx.section !== -1 ? row[idx.section] : 'General',
                         assignedProctor: ''
@@ -422,6 +729,7 @@
 
                 if (newExams.length > 0) {
                     this.state.exams = newExams;
+                    this.saveState(); // Save imported data
                     this.updateUI();
                     alert(`Successfully imported ${newExams.length} exams.`);
                 } else {
@@ -431,7 +739,6 @@
 
             // --- Assignment Logic ---
 
-            // Auto-Assign Rooms based on Level
             autoAssignRooms() {
                 if (!this.state.level) {
                     alert("Please select an academic level first (reload page).");
@@ -443,10 +750,8 @@
 
                 if (!confirm(`Auto-assign rooms for ${this.state.level} level using rooms: ${validRooms.join(', ')}? This will overwrite 'TBA' rooms.`)) return;
 
-                // Track usage: roomUsage[timeSlot] = Set(roomsUsed)
                 const roomUsage = {};
 
-                // First, identify rooms ALREADY manually assigned in the CSV to avoid double booking
                 this.state.exams.forEach(exam => {
                     if (exam.room && exam.room !== 'TBA' && validRooms.includes(exam.room)) {
                         if (!roomUsage[exam.time]) roomUsage[exam.time] = new Set();
@@ -458,11 +763,9 @@
                 let failedCount = 0;
 
                 this.state.exams = this.state.exams.map(exam => {
-                    // Only assign if currently unassigned or TBA
                     if (!exam.room || exam.room === 'TBA') {
                         if (!roomUsage[exam.time]) roomUsage[exam.time] = new Set();
                         
-                        // Find first available room for this slot
                         const availableRoom = validRooms.find(r => !roomUsage[exam.time].has(r));
                         
                         if (availableRoom) {
@@ -471,12 +774,13 @@
                             return { ...exam, room: availableRoom };
                         } else {
                             failedCount++;
-                            return exam; // No room available
+                            return exam;
                         }
                     }
                     return exam;
                 });
 
+                this.saveState(); // Save changes
                 this.updateUI();
                 
                 let msg = `Assigned rooms to ${assignedCount} exams.`;
@@ -488,6 +792,7 @@
                 this.state.exams = this.state.exams.map(exam => 
                     exam.id === examId ? { ...exam, assignedProctor: proctorName } : exam
                 );
+                this.saveState(); // Save changes
                 this.updateUI();
             }
 
@@ -498,6 +803,7 @@
                 if (name && !this.state.proctors.includes(name)) {
                     this.state.proctors.push(name);
                     input.value = '';
+                    this.saveState(); // Save changes
                     this.updateUI();
                 }
             }
@@ -505,39 +811,25 @@
             removeProctor(name) {
                 if(confirm(`Remove ${name} from proctor list?`)) {
                     this.state.proctors = this.state.proctors.filter(p => p !== name);
+                    this.saveState(); // Save changes
                     this.updateUI();
                 }
             }
 
-            // SMART AUTO ASSIGN (Logic Updated)
+            // SMART AUTO ASSIGN (Updated with Availability Check)
             autoAssign() {
                 if(this.state.exams.length === 0) {
                     alert("No exams to assign. Import a schedule first.");
                     return;
                 }
                 
-                if (!confirm("This will clear existing assignments and redistribute proctors ensuring breaks and equal loads. Continue?")) return;
+                if (!confirm("This will clear existing assignments and redistribute proctors ensuring breaks, equal loads, and availability settings. Continue?")) return;
 
                 // 1. Reset all assignments
                 this.state.exams.forEach(e => e.assignedProctor = '');
                 
-                // 2. Helper to parse date/time for sorting
-                const getMinutes = (timeStr) => {
-                    if (!timeStr) return 0;
-                    const startPart = timeStr.split('-')[0].trim();
-                    const match = startPart.match(/(\d+):(\d+)([AP]M)/i);
-                    if (!match) return 0;
-                    let [_, h, m, p] = match;
-                    h = parseInt(h);
-                    m = parseInt(m);
-                    if (p.toUpperCase() === 'PM' && h !== 12) h += 12;
-                    if (p.toUpperCase() === 'AM' && h === 12) h = 0;
-                    return h * 60 + m;
-                };
-
-                // 3. Group exams by Time Slot ID (Date + Time)
-                // We need to process chronologically to handle consecutive constraints
-                const slotMap = new Map(); // Key: "YYYY-MM-DD|08:30AM-10:00AM" -> [exams]
+                // 3. Group exams by Time Slot ID
+                const slotMap = new Map();
 
                 this.state.exams.forEach(exam => {
                     const key = `${exam.date}|${exam.time}`;
@@ -549,17 +841,15 @@
                 const sortedSlots = Array.from(slotMap.keys()).sort((a, b) => {
                     const [dateA, timeA] = a.split('|');
                     const [dateB, timeB] = b.split('|');
-                    
                     const dA = new Date(dateA);
                     const dB = new Date(dateB);
                     if (dA - dB !== 0) return dA - dB;
-                    
-                    return getMinutes(timeA) - getMinutes(timeB);
+                    return TimeUtils.toMinutes(timeA) - TimeUtils.toMinutes(timeB);
                 });
 
                 // 5. Track State
-                const proctorLoads = {}; // Total assignments per proctor
-                const proctorHistory = {}; // List of slot keys assigned to proctor
+                const proctorLoads = {};
+                const proctorHistory = {}; 
                 
                 this.state.proctors.forEach(p => {
                     proctorLoads[p] = 0;
@@ -571,27 +861,17 @@
                 // 6. Iterate Slots and Assign
                 sortedSlots.forEach((slotKey, slotIndex) => {
                     const examsInSlot = slotMap.get(slotKey);
-                    // Shuffle exams within slot to randomize room assignments
                     examsInSlot.sort(() => Math.random() - 0.5);
 
                     const [currentDate, ] = slotKey.split('|');
-                    
-                    // Identify previous slots ON THE SAME DAY
                     const prevSlotKey = slotIndex > 0 ? sortedSlots[slotIndex - 1] : null;
                     const prev2SlotKey = slotIndex > 1 ? sortedSlots[slotIndex - 2] : null;
                     const prev3SlotKey = slotIndex > 2 ? sortedSlots[slotIndex - 3] : null;
-                    
                     const isSameDay = (k1, k2) => k1 && k2 && k1.split('|')[0] === k2.split('|')[0];
 
-                    // Determine blocked sets based on history
-                    // Who worked in slot i-1 (Break Rule)
                     const workedPrev1 = new Set();
-                    // Who worked in i-1 AND i-2 (2-Streak Rule)
                     const workedPrev2Streak = new Set();
-                    // Who worked in i-1 AND i-2 AND i-3 (3-Streak Rule / Forbidden 4th)
                     const workedPrev3Streak = new Set();
-
-                    // Who is working NOW in this slot (Simultaneous Rule)
                     const workedCurrent = new Set(); 
 
                     this.state.proctors.forEach(p => {
@@ -609,28 +889,33 @@
 
                     // Assign each exam
                     examsInSlot.forEach(exam => {
-                        // Base Candidates: Everyone NOT working right now
-                        let candidates = this.state.proctors.filter(p => !workedCurrent.has(p));
+                        // Base Candidates: Everyone NOT working right now AND Available
+                        let candidates = this.state.proctors.filter(p => {
+                            // Check simultaneous rule
+                            if (workedCurrent.has(p)) return false;
+                            
+                            // Check Availability Rule (NEW)
+                            if (this.isProctorUnavailable(p, exam.date, exam.time)) return false;
+                            
+                            return true;
+                        });
 
-                        // Level 1: Strict Break (Not in Prev1)
+                        // Level 1: Strict Break
                         let bestCandidates = candidates.filter(p => !workedPrev1.has(p));
 
-                        // Fallback 1: If no one is fresh, allow consecutive, but NOT 3 straight
+                        // Fallback 1
                         if (bestCandidates.length === 0) {
                             bestCandidates = candidates.filter(p => !workedPrev2Streak.has(p));
                         }
 
-                        // Fallback 2: If everyone has done 2 straight, allow 3 straight, but NOT 4 straight
+                        // Fallback 2
                         if (bestCandidates.length === 0) {
                             bestCandidates = candidates.filter(p => !workedPrev3Streak.has(p));
                         }
 
-                        // Fallback 3: If literally everyone has done 3 straight (highly unlikely), take anyone valid
-                        // BUT user said "should not have 4 straight". We treat Fallback 2 as hard limit mostly.
-                        // If bestCandidates is still empty here, we might have to leave unassigned or break rule 4.
-                        // Let's break rule 4 only if absolutely necessary to fill room.
-                         if (bestCandidates.length === 0) {
-                            bestCandidates = candidates; // Last resort
+                        // Fallback 3
+                        if (bestCandidates.length === 0) {
+                            bestCandidates = candidates; 
                         }
 
                         if (bestCandidates.length === 0) {
@@ -638,15 +923,13 @@
                             return;
                         }
 
-                        // Select based on Load Balancing
+                        // Select based on Load
                         bestCandidates.sort((a, b) => proctorLoads[a] - proctorLoads[b]);
                         const minLoad = proctorLoads[bestCandidates[0]];
                         const finalPool = bestCandidates.filter(p => proctorLoads[p] === minLoad);
                         
-                        // Random pick from balanced pool
                         const selected = finalPool[Math.floor(Math.random() * finalPool.length)];
 
-                        // Commit
                         const originalExam = this.state.exams.find(e => e.id === exam.id);
                         if (originalExam) {
                             originalExam.assignedProctor = selected;
@@ -657,16 +940,17 @@
                     });
                 });
 
+                this.saveState(); // Save changes
                 this.updateUI();
                 
                 if (unassignedCount > 0) {
-                    alert(`Auto-assignment complete. ${unassignedCount} exams unassigned due to insufficient proctors (simultaneous conflict).`);
+                    alert(`Auto-assignment complete. ${unassignedCount} exams unassigned due to insufficient available proctors.`);
                 } else {
-                    alert("Auto-assignment complete! Schedule optimized for breaks and equal load.");
+                    alert("Auto-assignment complete! Schedule optimized for availability, breaks, and equal load.");
                 }
             }
 
-            // --- EXPORT FUNCTIONS ---
+            // --- EXPORT FUNCTIONS (ZIP Export Logic) ---
 
             showExportModal() {
                 if(this.state.exams.length === 0) {
@@ -676,126 +960,101 @@
                 document.getElementById('export-modal').classList.remove('hidden');
             }
 
-            generatePDF(mode) {
-                // Hide modal
-                document.getElementById('export-modal').classList.add('hidden');
-
-                // Initialize jsPDF
+            async generateZippedPDFs(mode) {
+                // Show Loading
+                document.getElementById('export-loading').classList.remove('hidden');
+                
+                // Initialization
+                const zip = new JSZip();
                 const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
 
-                // Helper to parse time for sorting
-                const getMinutes = (timeStr) => {
-                    if (!timeStr) return 0;
-                    const startPart = timeStr.split('-')[0].trim();
-                    const match = startPart.match(/(\d+):(\d+)([AP]M)/i);
-                    if (!match) return 0;
-                    let [_, h, m, p] = match;
-                    h = parseInt(h);
-                    m = parseInt(m);
-                    if (p.toUpperCase() === 'PM' && h !== 12) h += 12;
-                    if (p.toUpperCase() === 'AM' && h === 12) h = 0;
-                    return h * 60 + m;
-                };
-
-                // Common Sorter (Date > Time > Room)
+                // Sort Logic (Date > Time > Room)
                 const commonSorter = (a, b) => {
                     const dateA = new Date(a.date);
                     const dateB = new Date(b.date);
                     if (dateA - dateB !== 0) return dateA - dateB;
-                    const timeA = getMinutes(a.time);
-                    const timeB = getMinutes(b.time);
+                    const timeA = TimeUtils.toMinutes(a.time);
+                    const timeB = TimeUtils.toMinutes(b.time);
                     if (timeA - timeB !== 0) return timeA - timeB;
                     return (a.room || '').localeCompare(b.room || '');
                 };
 
+                // 1. Group Data
                 let groups = {};
-                let sortedKeys = [];
                 let headers = [];
                 let getRowData = null;
-                let titleText = '';
+                
+                // Helper: Clean filename
+                const cleanName = (str) => (str || 'Unassigned').replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
 
                 if (mode === 'section') {
-                    titleText = 'Final Exam Schedule - By Section';
-                    // Group by Section
                     this.state.exams.forEach(exam => {
                         const key = exam.section || 'General';
                         if (!groups[key]) groups[key] = [];
                         groups[key].push(exam);
                     });
-                    sortedKeys = Object.keys(groups).sort();
                     headers = [['Date', 'Time', 'Room', 'Subject', 'Proctor']];
                     getRowData = (exam, dayStr, dateStr) => [
-                        `${dayStr}, ${dateStr}`,
-                        exam.time,
-                        exam.room || 'TBA',
-                        exam.subject,
-                        exam.assignedProctor || 'Unassigned'
+                        `${dayStr}, ${dateStr}`, exam.time, exam.room || 'TBA', exam.subject, exam.assignedProctor || 'Unassigned'
                     ];
-
                 } else if (mode === 'proctor') {
-                    titleText = 'Final Exam Schedule - By Proctor';
-                    // Group by Proctor
                     this.state.exams.forEach(exam => {
                         const key = exam.assignedProctor || 'Unassigned';
                         if (!groups[key]) groups[key] = [];
                         groups[key].push(exam);
                     });
-                    // Sort proctors (put Unassigned last or first? Let's sort alpha but Unassigned at end)
-                    sortedKeys = Object.keys(groups).sort((a, b) => {
-                        if (a === 'Unassigned') return 1;
-                        if (b === 'Unassigned') return -1;
-                        return a.localeCompare(b);
-                    });
-                    
                     headers = [['Date', 'Time', 'Room', 'Section', 'Subject']];
                     getRowData = (exam, dayStr, dateStr) => [
-                        `${dayStr}, ${dateStr}`,
-                        exam.time,
-                        exam.room || 'TBA',
-                        exam.section,
-                        exam.subject
+                        `${dayStr}, ${dateStr}`, exam.time, exam.room || 'TBA', exam.section, exam.subject
+                    ];
+                } else if (mode === 'room') {
+                    this.state.exams.forEach(exam => {
+                        const key = exam.room || 'TBA';
+                        if (!groups[key]) groups[key] = [];
+                        groups[key].push(exam);
+                    });
+                    headers = [['Date', 'Time', 'Section', 'Subject', 'Proctor']];
+                    getRowData = (exam, dayStr, dateStr) => [
+                        `${dayStr}, ${dateStr}`, exam.time, exam.section, exam.subject, exam.assignedProctor || 'Unassigned'
+                    ];
+                } else if (mode === 'day') {
+                    this.state.exams.forEach(exam => {
+                        const key = exam.date;
+                        if (!groups[key]) groups[key] = [];
+                        groups[key].push(exam);
+                    });
+                    headers = [['Time', 'Room', 'Section', 'Subject', 'Proctor']];
+                    getRowData = (exam, dayStr, dateStr) => [
+                        exam.time, exam.room || 'TBA', exam.section, exam.subject, exam.assignedProctor || 'Unassigned'
                     ];
                 }
 
-                // Document Header
-                let currentY = 20;
-                doc.setFontSize(18);
-                doc.setTextColor(30, 58, 138); 
-                doc.text(titleText, 14, currentY);
+                // 2. Generate PDF per Group
+                const groupKeys = Object.keys(groups);
                 
-                currentY += 6;
-                doc.setFontSize(10);
-                doc.setTextColor(100);
-                doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, currentY);
-                
-                if (this.state.level) {
-                     currentY += 5;
-                     doc.text(`Academic Level: ${this.state.level}`, 14, currentY);
-                }
-
-                currentY += 10;
-
-                // Iterate Groups
-                sortedKeys.forEach(groupName => {
-                    // Page Break check
-                    if (currentY > 260) {
-                        doc.addPage();
-                        currentY = 20;
+                for (const groupName of groupKeys) {
+                    const doc = new jsPDF();
+                    
+                    // Title
+                    doc.setFontSize(18);
+                    doc.setTextColor(30, 58, 138);
+                    
+                    let titleLabel = groupName;
+                    if (mode === 'day') {
+                        try {
+                            const d = new Date(groupName);
+                            titleLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                        } catch(e){}
                     }
+                    doc.text(`Schedule: ${titleLabel}`, 14, 20);
+                    
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.text(`Generated on: ${new Date().toLocaleDateString()} | Type: By ${mode.charAt(0).toUpperCase() + mode.slice(1)}`, 14, 26);
+                    if (this.state.level) doc.text(`Academic Level: ${this.state.level}`, 14, 31);
 
-                    // Group Header
-                    doc.setFontSize(12);
-                    doc.setTextColor(0);
-                    doc.setFont(undefined, 'bold');
-                    const label = mode === 'section' ? `Section: ${groupName}` : `Proctor: ${groupName}`;
-                    doc.text(label, 14, currentY);
-                    currentY += 4;
-
-                    // Sort exams within group
+                    // Sort Data
                     const sortedExams = groups[groupName].sort(commonSorter);
-
-                    // Build Rows
                     const tableRows = sortedExams.map(exam => {
                         let dayStr = '';
                         let dateStr = exam.date;
@@ -806,56 +1065,50 @@
                                 dateStr = d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
                             }
                         } catch (e) {}
-
                         return getRowData(exam, dayStr, dateStr);
                     });
 
-                    // Styling tweaks based on mode
-                    const colStyles = mode === 'section' ? {
-                        0: { cellWidth: 30 },
-                        1: { cellWidth: 35 },
-                        2: { cellWidth: 20 },
-                        3: { cellWidth: 'auto' },
-                        4: { cellWidth: 40, fontStyle: 'bold' }
-                    } : {
-                        0: { cellWidth: 30 },
-                        1: { cellWidth: 35 },
-                        2: { cellWidth: 20 },
-                        3: { cellWidth: 25, fontStyle: 'bold' },
-                        4: { cellWidth: 'auto' }
-                    };
+                    // Column Config
+                    let colStyles = {};
+                    if(mode === 'day') {
+                        colStyles = { 0: { cellWidth: 35 }, 1: { cellWidth: 20, fontStyle: 'bold' }, 2: { cellWidth: 25 }, 3: { cellWidth: 'auto' }, 4: { cellWidth: 40 } };
+                    } else {
+                        colStyles = { 0: { cellWidth: 30 }, 1: { cellWidth: 35 }, 2: { cellWidth: 20 }, 3: { cellWidth: 'auto' }, 4: { cellWidth: 40 } };
+                    }
 
                     doc.autoTable({
-                        startY: currentY,
+                        startY: 36,
                         head: headers,
                         body: tableRows,
                         theme: 'grid',
-                        styles: { fontSize: 9, cellPadding: 3, valign: 'middle' },
+                        styles: { fontSize: 10, cellPadding: 4, valign: 'middle' },
                         headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold' },
                         columnStyles: colStyles,
                         didParseCell: function(data) {
-                            // Highlight Unassigned in Section View
-                            if (mode === 'section' && data.section === 'body' && data.column.index === 4) {
-                                if (data.cell.raw === 'Unassigned') {
-                                    data.cell.styles.textColor = [220, 38, 38];
-                                } else {
-                                    data.cell.styles.textColor = [22, 101, 52];
-                                }
+                            let pIdx = 4;
+                            if (mode === 'proctor') pIdx = -1;
+                            if (pIdx !== -1 && data.section === 'body' && data.column.index === pIdx) {
+                                if (data.cell.raw === 'Unassigned') data.cell.styles.textColor = [220, 38, 38];
+                                else data.cell.styles.textColor = [22, 101, 52];
                             }
                         },
                         margin: { left: 14, right: 14 }
                     });
 
-                    currentY = doc.lastAutoTable.finalY + 12;
+                    // Add to Zip
+                    const safeName = cleanName(groupName);
+                    // For Date mode, try to keep it readable but safe e.g. 2025-12-06
+                    zip.file(`${safeName}.pdf`, doc.output('blob'));
+                }
+
+                // 3. Download Zip
+                zip.generateAsync({type: "blob"}).then(function(content) {
+                    saveAs(content, `Exam_Schedules_by_${mode}.zip`);
+                    
+                    // Cleanup UI
+                    document.getElementById('export-loading').classList.add('hidden');
+                    document.getElementById('export-modal').classList.add('hidden');
                 });
-
-                doc.save(`exam-schedule-${mode}.pdf`);
-            }
-
-            exportPDF() {
-                // Deprecated direct call, now uses modal. 
-                // Kept for fallback but UI points to showExportModal
-                this.showExportModal();
             }
 
             exportCSV() {
@@ -863,7 +1116,6 @@
                     alert("No data to export.");
                     return;
                 }
-
                 const headers = ['Date', 'Time', 'Room', 'Section', 'Subject', 'Instructor', 'Assigned Proctor'];
                 const rows = this.state.exams.map(e => [
                     e.date, 
@@ -874,11 +1126,7 @@
                     e.instructor, 
                     e.assignedProctor || 'UNASSIGNED'
                 ]);
-                
-                const csvContent = "data:text/csv;charset=utf-8," 
-                    + headers.join(",") + "\n" 
-                    + rows.map(e => e.join(",")).join("\n");
-                    
+                const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
                 const encodedUri = encodeURI(csvContent);
                 const link = document.createElement("a");
                 link.setAttribute("href", encodedUri);
@@ -895,7 +1143,6 @@
                 this.renderSchedule();
                 this.renderProctorList();
                 this.renderLoadStats();
-                
                 const count = this.state.exams.length;
                 document.getElementById('header-subtitle').innerText = count > 0 ? `Schedule Loaded • ${count} Exams` : 'No Schedule Loaded';
             }
@@ -904,18 +1151,14 @@
                 const assignedCount = this.state.exams.filter(e => e.assignedProctor).length;
                 const total = this.state.exams.length;
                 const progress = total === 0 ? 0 : Math.round((assignedCount / total) * 100);
-                
                 document.getElementById('progress-text').innerText = `${assignedCount} / ${total} Exams Assigned`;
-                
-                const progressBar = document.getElementById('progress-bar');
-                progressBar.style.width = `${progress}%`;
-                progressBar.className = `h-full transition-all duration-500 ${progress === 100 ? 'bg-green-500' : 'bg-blue-600'}`;
+                document.getElementById('progress-bar').style.width = `${progress}%`;
+                document.getElementById('progress-bar').className = `h-full transition-all duration-500 ${progress === 100 ? 'bg-green-500' : 'bg-blue-600'}`;
             }
 
             getFilteredExams() {
                 const lowerQ = this.state.searchQuery.toLowerCase();
                 const groups = {};
-                
                 this.state.exams.forEach(exam => {
                     if (lowerQ && 
                         !exam.section.toLowerCase().includes(lowerQ) &&
@@ -923,7 +1166,6 @@
                         !exam.instructor.toLowerCase().includes(lowerQ)) {
                         return;
                     }
-
                     if (!groups[exam.time]) groups[exam.time] = [];
                     groups[exam.time].push(exam);
                 });
@@ -933,19 +1175,15 @@
             renderSchedule() {
                 const container = document.getElementById('schedule-container');
                 const noResults = document.getElementById('no-results');
-                
                 if (this.state.exams.length === 0) {
                     container.innerHTML = '';
                     noResults.classList.remove('hidden');
                     return;
                 }
-
                 const groups = this.getFilteredExams();
                 container.innerHTML = '';
-                
                 if (Object.keys(groups).length === 0) {
                     noResults.classList.remove('hidden');
-                    // Override default text if just search empty
                     if(this.state.exams.length > 0) {
                         noResults.innerHTML = '<p class="text-slate-400 py-10">No exams match your search.</p>';
                     }
@@ -953,7 +1191,6 @@
                 } else {
                     noResults.classList.add('hidden');
                 }
-
                 Object.keys(groups).forEach(time => {
                     const sectionHTML = `
                         <div class="animate-fade-in">
@@ -991,10 +1228,8 @@
                                 ${exam.section}
                             </div>
                         </div>
-                        
                         <h3 class="font-bold text-slate-800 mb-1 leading-tight">${exam.subject}</h3>
                         <p class="text-sm text-slate-500 mb-4">Instructor: ${exam.instructor}</p>
-                        
                         <div class="mt-auto">
                             <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 block">
                                 Proctor
@@ -1022,42 +1257,47 @@
             renderProctorList() {
                 const listContainer = document.getElementById('proctor-list');
                 const counts = this.getProctorCounts();
-                
-                listContainer.innerHTML = this.state.proctors.map(p => `
+                listContainer.innerHTML = this.state.proctors.map(p => {
+                    const restrictions = this.state.unavailability[p] ? this.state.unavailability[p].length : 0;
+                    return `
                     <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-100 hover:border-blue-200 transition-colors group">
                         <span class="font-medium text-slate-700">${p}</span>
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            ${restrictions > 0 ? `<span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full"><i class="fa-solid fa-ban text-[10px] mr-1"></i>${restrictions}</span>` : ''}
                             <span class="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded-full">
                                 ${counts[p] || 0} assigned
                             </span>
                             <button 
+                                onclick="app.openAvailabilityModal('${p}')"
+                                class="text-slate-400 hover:text-blue-500 p-1"
+                                title="Set Availability"
+                            >
+                                <i class="fa-solid fa-gear"></i>
+                            </button>
+                            <button 
                                 onclick="app.removeProctor('${p}')"
-                                class="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                class="text-slate-400 hover:text-red-500 p-1"
                                 title="Remove Proctor"
                             >
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
             }
 
             renderLoadStats() {
                 const statsContainer = document.getElementById('load-stats');
                 const counts = this.getProctorCounts();
-                
                 const sortedProctors = Object.entries(counts).sort(([,a], [,b]) => b - a);
-                
                 if (sortedProctors.length === 0) {
                     statsContainer.innerHTML = '<p class="text-slate-400 text-sm">No proctors assigned yet.</p>';
                     return;
                 }
-
                 statsContainer.innerHTML = sortedProctors.map(([name, count]) => {
                     const width = Math.min((count / 5) * 100, 100);
                     const colorClass = count > 3 ? 'bg-orange-500' : (count > 0 ? 'bg-blue-500' : 'bg-slate-300');
                     const isHighLoad = count > 3;
-
                     return `
                         <div class="flex items-center gap-3">
                             <div class="flex-1">
@@ -1091,21 +1331,16 @@
 
             switchTab(tabName) {
                 this.state.activeTab = tabName;
-                
                 const tabs = {
                     schedule: document.getElementById('tab-schedule'),
                     proctors: document.getElementById('tab-proctors')
                 };
-                
                 Object.values(tabs).forEach(el => {
                     el.className = "pb-3 px-1 border-b-2 transition-colors flex items-center gap-2 border-transparent text-blue-300 hover:text-white cursor-pointer";
                 });
-                
                 tabs[tabName].className = "pb-3 px-1 border-b-2 transition-colors flex items-center gap-2 border-white font-medium cursor-pointer";
-
                 document.getElementById('view-schedule').className = tabName === 'schedule' ? 'block space-y-8 animate-fade-in' : 'hidden';
                 document.getElementById('view-proctors').className = tabName === 'proctors' ? 'grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in' : 'hidden';
-
                 if (tabName === 'proctors') {
                     this.renderProctorList();
                     this.renderLoadStats();
