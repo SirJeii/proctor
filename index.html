@@ -52,28 +52,75 @@
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
     <div id="level-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden px-4">
-        <div class="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl text-center transform transition-all scale-100">
-            <div class="mb-6 bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-blue-600">
-                <i class="fa-solid fa-graduation-cap text-2xl"></i>
-            </div>
-            <h2 class="text-2xl font-bold text-slate-800 mb-2">Select Academic Level</h2>
-            <p class="text-slate-500 mb-8">Please choose the department to manage exam schedules and room assignments.</p>
-            
-            <div class="space-y-4">
-                <button onclick="app.setLevel('SHS')" class="w-full py-4 px-6 rounded-xl border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all group flex items-center justify-between">
-                    <div class="text-left">
-                        <span class="block font-bold text-slate-700 group-hover:text-blue-700">Senior High School</span>
-                        <span class="text-xs text-slate-400">Rooms 301-304, 307, 308</span>
-                    </div>
-                    <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-blue-500"></i>
-                </button>
+        <div class="bg-white rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-2xl text-center transform transition-all scale-100">
+            <!-- Step 1: Level Selection -->
+            <div id="level-step">
+                <div class="mb-6 bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-blue-600">
+                    <i class="fa-solid fa-graduation-cap text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">Select Academic Level</h2>
+                <p class="text-slate-500 mb-8">Please choose the department to manage exam schedules and room assignments.</p>
                 
-                <button onclick="app.setLevel('Tertiary')" class="w-full py-4 px-6 rounded-xl border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all group flex items-center justify-between">
-                    <div class="text-left">
-                        <span class="block font-bold text-slate-700 group-hover:text-blue-700">Tertiary</span>
-                        <span class="text-xs text-slate-400">Rooms 202-205, 305-310, CL1-4</span>
+                <div class="space-y-4">
+                    <button onclick="app.setLevel('SHS')" class="w-full py-4 px-6 rounded-xl border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all group flex items-center justify-between">
+                        <div class="text-left">
+                            <span class="block font-bold text-slate-700 group-hover:text-blue-700">Senior High School</span>
+                            <span class="text-xs text-slate-400">Rooms 301-304, 307, 308</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-blue-500"></i>
+                    </button>
+                    
+                    <button onclick="app.setLevel('Tertiary')" class="w-full py-4 px-6 rounded-xl border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all group flex items-center justify-between">
+                        <div class="text-left">
+                            <span class="block font-bold text-slate-700 group-hover:text-blue-700">Tertiary</span>
+                            <span class="text-xs text-slate-400">Rooms 202-205, 305-310, CL1-4</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-blue-500"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Date Selection -->
+            <div id="date-step" class="hidden text-left animate-fade-in">
+                <div class="flex items-center gap-3 mb-6">
+                    <button onclick="app.backToLevel()" class="text-slate-400 hover:text-blue-600 transition-colors">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">Set Exam Dates</h2>
+                        <p class="text-xs text-slate-500">Define the dates for Day 1 to Day 6.</p>
                     </div>
-                    <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-blue-500"></i>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Day 1</label>
+                        <input type="date" id="date-day-1" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Day 2</label>
+                        <input type="date" id="date-day-2" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Day 3</label>
+                        <input type="date" id="date-day-3" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Day 4</label>
+                        <input type="date" id="date-day-4" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Day 5 (Optional)</label>
+                        <input type="date" id="date-day-5" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Day 6 (Optional)</label>
+                        <input type="date" id="date-day-6" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+
+                <button onclick="app.saveExamDates()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-blue-200">
+                    Confirm & Start
                 </button>
             </div>
         </div>
@@ -95,6 +142,7 @@
         </div>
     </div>
 
+    <!-- Export Modal -->
     <div id="export-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden px-4">
         <div class="bg-white rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-2xl text-center">
             <div class="mb-4 bg-red-100 w-14 h-14 rounded-full flex items-center justify-center mx-auto text-red-600">
@@ -137,6 +185,15 @@
         </div>
     </div>
 
+    <!-- Toast Notification -->
+    <div id="toast-notification" class="fixed top-4 right-4 z-50 hidden">
+        <div class="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in">
+            <i class="fa-solid fa-circle-check text-xl"></i>
+            <span id="toast-message">Saved successfully!</span>
+        </div>
+    </div>
+
+    <!-- Availability Modal -->
     <div id="availability-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden px-4">
         <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
             <div class="flex justify-between items-center mb-4">
@@ -180,9 +237,48 @@
             <div class="max-h-60 overflow-y-auto">
                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Current Restrictions</h3>
                 <div id="avail-rules-list" class="space-y-2">
-                    </div>
+                </div>
                 <div id="avail-empty-msg" class="text-center py-4 text-slate-400 text-sm hidden">
                     No restrictions set. Available all day.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subject Conflict Modal -->
+    <div id="subject-conflict-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden px-4">
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-slate-800">
+                    <i class="fa-solid fa-book-open text-purple-600 mr-2"></i>
+                    <span id="conflict-modal-title">Handled Subjects</span>
+                </h2>
+                <button onclick="app.closeSubjectConflictModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <p class="text-sm text-slate-500 mb-4">Specify subjects this proctor <strong>teaches</strong>. They will not be assigned to proctor exams for these subjects.</p>
+            
+            <div class="bg-purple-50 p-4 rounded-xl border border-purple-100 mb-4">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Subject Name (Exact Match)</label>
+                <div class="flex gap-2">
+                    <input type="text" id="conflict-subject-input" list="subject-suggestions" class="flex-1 text-sm border-slate-300 rounded-lg p-2 border focus:ring-2 focus:ring-purple-500 outline-none" placeholder="e.g. Computer Programming 1">
+                    <datalist id="subject-suggestions"></datalist>
+                    <button onclick="app.addSubjectConflict()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Add
+                    </button>
+                </div>
+                <p class="text-xs text-slate-400 mt-2">Tips: Use the autocomplete to match existing schedule subjects.</p>
+            </div>
+
+            <div class="max-h-60 overflow-y-auto">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Subject Exclusions</h3>
+                <div id="conflict-list" class="space-y-2">
+                    <!-- Dynamic List -->
+                </div>
+                <div id="conflict-empty-msg" class="text-center py-4 text-slate-400 text-sm hidden">
+                    No subject conflicts set.
                 </div>
             </div>
         </div>
@@ -312,8 +408,39 @@
         </div>
 
         <div id="view-schedule" class="space-y-8 block">
-            <div id="schedule-container">
+            <!-- Day & Time Filter Section -->
+            <div id="day-filter-tabs" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Day Filter -->
+                    <div>
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="fa-solid fa-calendar-day text-blue-600"></i>
+                            <span class="text-sm font-semibold text-slate-600">Filter by Day:</span>
+                        </div>
+                        <div id="day-tabs-container" class="flex flex-wrap gap-2">
+                            <!-- Dynamic tabs will be inserted here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Time Filter -->
+                    <div>
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="fa-solid fa-clock text-blue-600"></i>
+                            <span class="text-sm font-semibold text-slate-600">Filter by Time:</span>
+                        </div>
+                        <select 
+                            id="time-filter-select" 
+                            onchange="app.filterByTime(this.value)"
+                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer bg-white"
+                        >
+                            <option value="">All Time Slots</option>
+                        </select>
+                    </div>
                 </div>
+            </div>
+
+            <div id="schedule-container">
+            </div>
             <div id="no-results" class="block text-center py-20 text-slate-400">
                 <div class="mb-4">
                     <i class="fa-solid fa-clipboard-list text-6xl text-slate-200"></i>
@@ -349,24 +476,49 @@
                     </div>
 
                     <div class="flex flex-wrap gap-3 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                        <div class="text-sm text-slate-500 w-full mb-1 font-semibold">Bulk Availability</div>
+                        <div class="text-sm text-slate-500 w-full mb-1 font-semibold">Bulk Availability Management</div>
                         <button 
                             onclick="app.downloadUnavailabilityTemplate()" 
                             class="text-sm bg-white border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center gap-2 flex-grow sm:flex-grow-0 justify-center"
                         >
-                            <i class="fa-solid fa-file-csv"></i> Download Template
+                            <i class="fa-solid fa-file-csv"></i> CSV Template
                         </button>
                         <button 
                             onclick="document.getElementById('avail-csv-upload').click()" 
                             class="text-sm bg-white border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-50 hover:text-green-600 transition-colors flex items-center gap-2 flex-grow sm:flex-grow-0 justify-center"
                         >
-                            <i class="fa-solid fa-upload"></i> Import Availability
+                            <i class="fa-solid fa-upload"></i> Import CSV
+                        </button>
+                        <button 
+                            onclick="app.exportUnavailabilityJSON()" 
+                            class="text-sm bg-white border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-50 hover:text-purple-600 transition-colors flex items-center gap-2 flex-grow sm:flex-grow-0 justify-center"
+                        >
+                            <i class="fa-solid fa-file-export"></i> Export JSON
+                        </button>
+                        <button 
+                            onclick="document.getElementById('avail-json-upload').click()" 
+                            class="text-sm bg-white border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-50 hover:text-purple-600 transition-colors flex items-center gap-2 flex-grow sm:flex-grow-0 justify-center"
+                        >
+                            <i class="fa-solid fa-file-import"></i> Import JSON
+                        </button>
+                        <button 
+                            onclick="app.exportUnavailabilityCSV()" 
+                            class="text-sm bg-white border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-50 hover:text-orange-600 transition-colors flex items-center gap-2 flex-grow sm:flex-grow-0 justify-center"
+                        >
+                            <i class="fa-solid fa-download"></i> Backup CSV
+                        </button>
+                        <button 
+                            onclick="app.clearAllUnavailability()" 
+                            class="text-sm bg-white border border-red-300 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 hover:text-red-700 transition-colors flex items-center gap-2 flex-grow sm:flex-grow-0 justify-center"
+                        >
+                            <i class="fa-solid fa-trash-can"></i> Clear All
                         </button>
                         <input type="file" id="avail-csv-upload" class="hidden" accept=".csv">
+                        <input type="file" id="avail-json-upload" class="hidden" accept=".json">
                     </div>
 
                     <div id="proctor-list" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        </div>
+                    </div>
                </div>
             </div>
 
@@ -374,7 +526,7 @@
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-24">
                     <h3 class="text-lg font-bold mb-4">Proctor Load Summary</h3>
                     <div id="load-stats" class="space-y-4">
-                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -386,12 +538,7 @@
         // Initial state is now EMPTY
         const INITIAL_EXAMS = [];
 
-        const INITIAL_PROCTORS = [
-            'Mr. Sayson', 'Mr. Teleg', 'Mr. Rana', 'Mr. Saledio', 
-            'Ms. Dominguez', 'Ms. Magnaye', 'Mr. Edquilag', 
-            'Mr. Agbisit', 'Mr. Alonzo', 'Ms. Tiamzon', 'Dr. Yulo',
-            'Mr. Barangan', 'Mr. Arnoco', 'Mr. Unabia', 'Mr. Rosqueta'
-        ];
+        const INITIAL_PROCTORS = [];
 
         // Room Configurations
         const ROOMS = {
@@ -447,8 +594,14 @@
                             activeTab: 'schedule', // Always reset UI state
                             searchQuery: '',
                             editingProctor: null,
-                            pendingConfirmAction: null // Stores the function to execute on confirm
+                            pendingConfirmAction: null, // Stores the function to execute on confirm
+                            selectedDay: null, // null = show all days, number = show specific day
+                            selectedTime: '' // empty = show all times, string = show specific time
                         };
+                        // Migration for old saves that might not have proctorSubjects
+                        if (!this.state.proctorSubjects) {
+                            this.state.proctorSubjects = {};
+                        }
                     } catch(e) {
                         console.error('Save file corrupted, resetting.');
                         this.state = this.getDefaultState();
@@ -463,9 +616,11 @@
             getDefaultState() {
                 return {
                     level: null, 
+                    examDates: {}, // Stores mapping like {1: '2025-10-01', 2: '2025-10-02'}
                     exams: [...INITIAL_EXAMS],
                     proctors: [...INITIAL_PROCTORS],
-                    unavailability: {}
+                    unavailability: {},
+                    proctorSubjects: {} // { "Proctor Name": ["Math", "Science"] }
                 };
             }
 
@@ -473,14 +628,16 @@
                 // Only save essential data
                 const dataToSave = {
                     level: this.state.level,
+                    examDates: this.state.examDates,
                     exams: this.state.exams,
                     proctors: this.state.proctors,
-                    unavailability: this.state.unavailability
+                    unavailability: this.state.unavailability,
+                    proctorSubjects: this.state.proctorSubjects
                 };
                 localStorage.setItem('proctorApp_v2', JSON.stringify(dataToSave));
             }
 
-            // --- Generic Confirmation Modal Logic (NEW) ---
+            // --- Generic Confirmation Modal Logic ---
             showConfirm({ title, message, iconClass, iconBgClass, iconColorClass, btnClass, btnText, onConfirm }) {
                 this.state.pendingConfirmAction = onConfirm;
                 
@@ -514,7 +671,7 @@
                 this.closeConfirmModal();
             }
 
-            // --- Updated Actions using Confirm Modal ---
+            // --- Actions ---
 
             resetData() {
                 this.showConfirm({
@@ -620,6 +777,8 @@
                     btnText: "Remove",
                     onConfirm: () => {
                         this.state.proctors = this.state.proctors.filter(p => p !== name);
+                        delete this.state.unavailability[name];
+                        delete this.state.proctorSubjects[name];
                         this.saveState();
                         this.updateUI();
                     }
@@ -653,14 +812,22 @@
                 document.getElementById('new-proctor-input').addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') this.addProctor();
                 });
+                
+                // Add subject listener for Enter key
+                document.getElementById('conflict-subject-input').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') this.addSubjectConflict();
+                });
 
                 document.getElementById('csv-upload').addEventListener('change', (e) => {
                     this.handleFileUpload(e.target.files[0]);
                 });
 
-                // NEW: Availability Import Listener
                 document.getElementById('avail-csv-upload').addEventListener('change', (e) => {
                     this.handleAvailabilityUpload(e.target.files[0]);
+                });
+
+                document.getElementById('avail-json-upload').addEventListener('change', (e) => {
+                    this.importUnavailabilityJSON(e.target.files[0]);
                 });
 
                 // Initial Render (will show empty state)
@@ -736,6 +903,7 @@
                 });
 
                 this.saveState(); // Save changes
+                this.showToast('Unavailability rule added and saved!');
                 this.renderAvailabilityRules();
                 this.renderProctorList(); // Update badge in list
             }
@@ -746,8 +914,162 @@
                 
                 this.state.unavailability[proctor].splice(index, 1);
                 this.saveState(); // Save changes
+                this.showToast('Unavailability rule removed!');
                 this.renderAvailabilityRules();
                 this.renderProctorList(); // Update badge
+            }
+
+            // --- Toast Notification ---
+            showToast(message, type = 'success') {
+                const toast = document.getElementById('toast-notification');
+                const toastMessage = document.getElementById('toast-message');
+                const toastDiv = toast.querySelector('div');
+                
+                toastMessage.innerText = message;
+                
+                // Set color based on type
+                if (type === 'success') {
+                    toastDiv.className = 'bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in';
+                    toastDiv.querySelector('i').className = 'fa-solid fa-circle-check text-xl';
+                } else if (type === 'error') {
+                    toastDiv.className = 'bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in';
+                    toastDiv.querySelector('i').className = 'fa-solid fa-circle-xmark text-xl';
+                } else if (type === 'info') {
+                    toastDiv.className = 'bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in';
+                    toastDiv.querySelector('i').className = 'fa-solid fa-circle-info text-xl';
+                }
+                
+                toast.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 3000);
+            }
+
+            // --- Export Unavailability as JSON ---
+            exportUnavailabilityJSON() {
+                if (Object.keys(this.state.unavailability).length === 0) {
+                    alert("No unavailability data to export.");
+                    return;
+                }
+
+                const data = {
+                    exportDate: new Date().toISOString(),
+                    level: this.state.level,
+                    unavailability: this.state.unavailability
+                };
+
+                const jsonStr = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `proctor_unavailability_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                this.showToast('Unavailability data exported as JSON!');
+            }
+
+            // --- Import Unavailability from JSON ---
+            importUnavailabilityJSON(file) {
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        
+                        if (!data.unavailability) {
+                            alert('Invalid JSON file: Missing unavailability data.');
+                            return;
+                        }
+
+                        // Merge or replace?
+                        const shouldMerge = confirm('Do you want to MERGE with existing data?\n\nClick OK to merge, Cancel to replace all existing unavailability data.');
+
+                        if (shouldMerge) {
+                            // Merge: Add new rules to existing proctors
+                            Object.keys(data.unavailability).forEach(proctor => {
+                                if (!this.state.unavailability[proctor]) {
+                                    this.state.unavailability[proctor] = [];
+                                }
+                                this.state.unavailability[proctor].push(...data.unavailability[proctor]);
+                            });
+                        } else {
+                            // Replace all
+                            this.state.unavailability = data.unavailability;
+                        }
+
+                        this.saveState();
+                        this.updateUI();
+                        this.showToast(`Unavailability data imported successfully! (${shouldMerge ? 'Merged' : 'Replaced'})`);
+                    } catch (error) {
+                        alert('Error parsing JSON file: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+                
+                // Reset input
+                document.getElementById('avail-json-upload').value = '';
+            }
+
+            // --- Export Unavailability as CSV (Backup) ---
+            exportUnavailabilityCSV() {
+                if (Object.keys(this.state.unavailability).length === 0) {
+                    alert("No unavailability data to export.");
+                    return;
+                }
+
+                const headers = ['Proctor Name', 'Date (Empty = Everyday)', 'Start Time', 'End Time'];
+                const rows = [];
+
+                Object.keys(this.state.unavailability).forEach(proctor => {
+                    const rules = this.state.unavailability[proctor];
+                    rules.forEach(rule => {
+                        rows.push([
+                            proctor,
+                            rule.date || '',
+                            rule.start,
+                            rule.end
+                        ]);
+                    });
+                });
+
+                const csvContent = "data:text/csv;charset=utf-8," 
+                    + headers.join(",") + "\n" 
+                    + rows.map(e => e.join(",")).join("\n");
+                    
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `proctor_unavailability_backup_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                this.showToast('Unavailability data exported as CSV backup!');
+            }
+
+            // --- Clear All Unavailability ---
+            clearAllUnavailability() {
+                this.showConfirm({
+                    title: "Clear All Unavailability?",
+                    message: "This will remove ALL unavailability settings for ALL proctors. This action cannot be undone. Are you sure?",
+                    iconClass: "fa-solid fa-trash-can",
+                    iconBgClass: "bg-red-100",
+                    iconColorClass: "text-red-600",
+                    btnClass: "bg-red-600 hover:bg-red-700 shadow-red-200",
+                    btnText: "Clear All",
+                    onConfirm: () => {
+                        this.state.unavailability = {};
+                        this.saveState();
+                        this.updateUI();
+                        this.showToast('All unavailability data cleared!', 'info');
+                    }
+                });
             }
 
             renderAvailabilityRules() {
@@ -775,7 +1097,95 @@
                     </div>
                 `).join('');
             }
+
+            // --- Subject Conflict Management (NEW) ---
+
+            openSubjectConflictModal(proctorName) {
+                this.state.editingProctor = proctorName;
+                document.getElementById('conflict-modal-title').innerText = `Subjects: ${proctorName}`;
+                document.getElementById('conflict-subject-input').value = '';
+                
+                // Populate datalist with existing subjects from exams for easy selection
+                const uniqueSubjects = [...new Set(this.state.exams.map(e => e.subject))].sort();
+                const datalist = document.getElementById('subject-suggestions');
+                datalist.innerHTML = uniqueSubjects.map(s => `<option value="${s}">`).join('');
+
+                this.renderSubjectConflicts();
+                document.getElementById('subject-conflict-modal').classList.remove('hidden');
+            }
+
+            closeSubjectConflictModal() {
+                this.state.editingProctor = null;
+                document.getElementById('subject-conflict-modal').classList.add('hidden');
+            }
+
+            addSubjectConflict() {
+                const proctor = this.state.editingProctor;
+                const input = document.getElementById('conflict-subject-input');
+                const subject = input.value.trim();
+
+                if (!proctor || !subject) return;
+
+                if (!this.state.proctorSubjects[proctor]) {
+                    this.state.proctorSubjects[proctor] = [];
+                }
+
+                // Prevent duplicates (case insensitive)
+                const exists = this.state.proctorSubjects[proctor].some(s => s.toLowerCase() === subject.toLowerCase());
+                if (exists) {
+                    alert("This subject is already added.");
+                    return;
+                }
+
+                this.state.proctorSubjects[proctor].push(subject);
+                input.value = '';
+                this.saveState();
+                this.renderSubjectConflicts();
+                this.renderProctorList();
+            }
+
+            removeSubjectConflict(index) {
+                const proctor = this.state.editingProctor;
+                if (!proctor || !this.state.proctorSubjects[proctor]) return;
+                
+                this.state.proctorSubjects[proctor].splice(index, 1);
+                this.saveState();
+                this.renderSubjectConflicts();
+                this.renderProctorList();
+            }
+
+            renderSubjectConflicts() {
+                const proctor = this.state.editingProctor;
+                const list = document.getElementById('conflict-list');
+                const emptyMsg = document.getElementById('conflict-empty-msg');
+                const subjects = this.state.proctorSubjects[proctor] || [];
+
+                if (subjects.length === 0) {
+                    list.innerHTML = '';
+                    emptyMsg.classList.remove('hidden');
+                    return;
+                }
+
+                emptyMsg.classList.add('hidden');
+                list.innerHTML = subjects.map((sub, idx) => `
+                    <div class="flex justify-between items-center bg-purple-50 text-purple-700 p-2 rounded text-sm border border-purple-100">
+                        <span class="font-medium">${sub}</span>
+                        <button onclick="app.removeSubjectConflict(${idx})" class="text-purple-400 hover:text-purple-600">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
             
+            // Helper to check if a proctor teaches a subject
+            hasSubjectConflict(proctorName, examSubject) {
+                if (!examSubject) return false;
+                const taughtSubjects = this.state.proctorSubjects[proctorName] || [];
+                // Case insensitive partial match check, or strict? 
+                // Let's do exact match (trimmed, lower) to avoid false positives on similar names
+                return taughtSubjects.some(s => s.trim().toLowerCase() === examSubject.trim().toLowerCase());
+            }
+
             formatTime12h(time24) {
                 const [h, m] = time24.split(':');
                 const H = parseInt(h);
@@ -805,18 +1215,49 @@
                 });
             }
 
-            // --- Level Selection ---
+            // --- Level & Date Selection ---
             setLevel(level) {
                 this.state.level = level;
                 
-                // UI Updates
-                const badge = document.getElementById('level-badge');
-                badge.innerText = level;
-                badge.classList.remove('hidden');
+                // Show Date Step, Hide Level Step
+                document.getElementById('level-step').classList.add('hidden');
+                document.getElementById('date-step').classList.remove('hidden');
                 
-                // Hide Modal
+                // Pre-fill if exists
+                if(this.state.examDates) {
+                    for(let i=1; i<=6; i++) {
+                        const inp = document.getElementById(`date-day-${i}`);
+                        if(inp) inp.value = this.state.examDates[i] || '';
+                    }
+                }
+            }
+
+            backToLevel() {
+                document.getElementById('date-step').classList.add('hidden');
+                document.getElementById('level-step').classList.remove('hidden');
+            }
+
+            saveExamDates() {
+                const dates = {};
+                for(let i=1; i<=6; i++) {
+                    const val = document.getElementById(`date-day-${i}`).value;
+                    if(val) dates[i] = val;
+                }
+
+                // Validation: Need at least Day 1
+                if(!dates[1]) {
+                    alert("Please select a date for at least Day 1.");
+                    return;
+                }
+
+                this.state.examDates = dates;
+                this.saveState();
+
+                // Finalize Setup
+                const badge = document.getElementById('level-badge');
+                badge.innerText = this.state.level;
+                badge.classList.remove('hidden');
                 document.getElementById('level-modal').classList.add('hidden');
-                this.saveState(); // Save selection
             }
 
             // --- Import / Export ---
@@ -907,10 +1348,10 @@
                     instructor: getIndex('instructor'),
                     room: getIndex('room'),
                     section: getIndex('section'),
-                    day: getIndex('day')
+                    day: getIndex('day') // Optional column 'Day' (e.g. Day 1, Day 2)
                 };
 
-                const required = ['date', 'time', 'subject', 'instructor'];
+                const required = ['time', 'subject', 'instructor']; // Date not strictly required if we have Day mapping
                 const missing = required.filter(field => idx[field] === -1);
                 
                 if (missing.length > 0) {
@@ -919,16 +1360,49 @@
                 }
 
                 const newExams = [];
+                // Track instructor-subject relationships for automatic loading
+                const instructorSubjects = {}; // { "Instructor Name": Set(["Subject1", "Subject2"]) }
+                
                 for (let i = 1; i < lines.length; i++) {
                     const row = lines[i].split(',').map(cell => cell.trim());
                     if (row.length < required.length) continue;
 
+                    let examDate = (idx.date !== -1) ? row[idx.date] : '';
+                    let examDayStr = (idx.day !== -1) ? row[idx.day] : '';
+
+                    // Logic: If Date is empty but Day is present (e.g. "Day 1"), try to map it
+                    if (!examDate && examDayStr) {
+                        const dayNumMatch = examDayStr.match(/(\d+)/);
+                        if (dayNumMatch && this.state.examDates) {
+                            const dNum = parseInt(dayNumMatch[1]);
+                            if (this.state.examDates[dNum]) {
+                                examDate = this.state.examDates[dNum];
+                            }
+                        }
+                    }
+
+                    if (!examDate && !examDayStr && idx.date !== -1) {
+                         // Fallback: if row has no date but required, maybe skip or alert?
+                         // For now we allow empty date, but it's risky.
+                    }
+
+                    const subject = row[idx.subject].replace(/^"|"$/g, '');
+                    const instructor = row[idx.instructor];
+
+                    // Track instructor-subject relationship
+                    if (instructor && subject) {
+                        if (!instructorSubjects[instructor]) {
+                            instructorSubjects[instructor] = new Set();
+                        }
+                        instructorSubjects[instructor].add(subject);
+                    }
+
                     newExams.push({
                         id: Date.now() + i,
-                        date: row[idx.date],
+                        date: examDate,
                         time: row[idx.time],
-                        subject: row[idx.subject].replace(/^"|"$/g, ''),
-                        instructor: row[idx.instructor],
+                        subject: subject,
+                        instructor: instructor,
                         room: (idx.room !== -1 && row[idx.room]) ? row[idx.room] : 'TBA',
                         section: idx.section !== -1 ? row[idx.section] : 'General',
                         assignedProctor: ''
@@ -937,15 +1411,55 @@
 
                 if (newExams.length > 0) {
                     this.state.exams = newExams;
+                    
+                    // Automatically add instructors to proctor list with their subjects
+                    let addedInstructors = 0;
+                    let updatedInstructors = 0;
+                    
+                    Object.keys(instructorSubjects).forEach(instructor => {
+                        const subjects = Array.from(instructorSubjects[instructor]);
+                        
+                        // Add instructor to proctor list if not already present
+                        if (!this.state.proctors.includes(instructor)) {
+                            this.state.proctors.push(instructor);
+                            addedInstructors++;
+                        }
+                        
+                        // Initialize or update their subject conflicts
+                        if (!this.state.proctorSubjects[instructor]) {
+                            this.state.proctorSubjects[instructor] = [];
+                        }
+                        
+                        // Add subjects they teach (avoid duplicates)
+                        subjects.forEach(subject => {
+                            const exists = this.state.proctorSubjects[instructor].some(
+                                s => s.toLowerCase() === subject.toLowerCase()
+                            );
+                            if (!exists) {
+                                this.state.proctorSubjects[instructor].push(subject);
+                                updatedInstructors++;
+                            }
+                        });
+                    });
+                    
                     this.saveState(); // Save imported data
                     this.updateUI();
-                    alert(`Successfully imported ${newExams.length} exams.`);
+                    
+                    let message = `Successfully imported ${newExams.length} exams.`;
+                    if (addedInstructors > 0) {
+                        message += `\n\n✓ Added ${addedInstructors} instructor(s) to proctor list.`;
+                    }
+                    if (updatedInstructors > 0) {
+                        message += `\n✓ Configured ${Object.keys(instructorSubjects).length} instructor(s) with their taught subjects.`;
+                        message += `\n\nNote: Instructors will not be assigned to proctor their own subject exams.`;
+                    }
+                    
+                    alert(message);
                 } else {
                     alert('No valid exam rows found.');
                 }
             }
 
-            // NEW: Parse Availability CSV
             parseAvailabilityCSV(text) {
                 const lines = text.split('\n').filter(line => line.trim() !== '');
                 if (lines.length < 2) {
@@ -994,7 +1508,7 @@
                 
                 let msg = `Imported ${count} unavailability rules.`;
                 if (addedProctors > 0) msg += ` Added ${addedProctors} new proctors found in CSV.`;
-                alert(msg);
+                this.showToast(msg, 'success');
             }
 
             // --- Assignment Logic ---
@@ -1019,7 +1533,7 @@
                 }
             }
 
-            // SMART AUTO ASSIGN (Updated with Availability Check)
+            // SMART AUTO ASSIGN (Updated with Availability Check & Room Continuity)
             performAutoAssign() {
                 // 1. Reset all assignments
                 this.state.exams.forEach(e => e.assignedProctor = '');
@@ -1046,10 +1560,12 @@
                 // 5. Track State
                 const proctorLoads = {};
                 const proctorHistory = {}; 
+                const proctorDailyRooms = {}; // NEW: Track rooms per day for continuity
                 
                 this.state.proctors.forEach(p => {
                     proctorLoads[p] = 0;
                     proctorHistory[p] = []; 
+                    proctorDailyRooms[p] = {}; // date -> Set(rooms)
                 });
 
                 let unassignedCount = 0;
@@ -1090,8 +1606,11 @@
                             // Check simultaneous rule
                             if (workedCurrent.has(p)) return false;
                             
-                            // Check Availability Rule (NEW)
+                            // Check Availability Rule
                             if (this.isProctorUnavailable(p, exam.date, exam.time)) return false;
+
+                            // NEW: Check Subject Conflict
+                            if (this.hasSubjectConflict(p, exam.subject)) return false;
                             
                             return true;
                         });
@@ -1124,7 +1643,24 @@
                         const minLoad = proctorLoads[bestCandidates[0]];
                         const finalPool = bestCandidates.filter(p => proctorLoads[p] === minLoad);
                         
-                        const selected = finalPool[Math.floor(Math.random() * finalPool.length)];
+                        // NEW: Room Continuity Tie-Breaker
+                        // Prioritize proctors who have already proctored in THIS room on THIS day
+                        let selected = null;
+                        const currentRoom = exam.room;
+                        const dateKey = exam.date;
+
+                        // Filter finalPool for those with room history
+                        const sameRoomCandidates = finalPool.filter(p => 
+                            proctorDailyRooms[p][dateKey] && proctorDailyRooms[p][dateKey].has(currentRoom)
+                        );
+
+                        if (sameRoomCandidates.length > 0) {
+                            // Pick one of the candidates who were already in this room
+                            selected = sameRoomCandidates[Math.floor(Math.random() * sameRoomCandidates.length)];
+                        } else {
+                            // No one has history in this room, pick random from the balanced load pool
+                            selected = finalPool[Math.floor(Math.random() * finalPool.length)];
+                        }
 
                         const originalExam = this.state.exams.find(e => e.id === exam.id);
                         if (originalExam) {
@@ -1132,6 +1668,12 @@
                             proctorLoads[selected]++;
                             proctorHistory[selected].push(slotKey);
                             workedCurrent.add(selected);
+                            
+                            // Track Room for Continuity
+                            if (!proctorDailyRooms[selected][dateKey]) {
+                                proctorDailyRooms[selected][dateKey] = new Set();
+                            }
+                            proctorDailyRooms[selected][dateKey].add(currentRoom);
                         }
                     });
                 });
@@ -1140,9 +1682,9 @@
                 this.updateUI();
                 
                 if (unassignedCount > 0) {
-                    alert(`Auto-assignment complete. ${unassignedCount} exams unassigned due to insufficient available proctors.`);
+                    alert(`Auto-assignment complete. ${unassignedCount} exams unassigned due to conflicts or lack of available proctors.`);
                 } else {
-                    alert("Auto-assignment complete! Schedule optimized for availability, breaks, and equal load.");
+                    alert("Auto-assignment complete! Schedule optimized for availability, subject conflicts, breaks, and load.");
                 }
             }
 
@@ -1288,10 +1830,16 @@
                                     }
                                 } catch (e) {}
                                 return getRowData(exam, dayStr, dateStr);
-                            });
+                             });
 
                             // Column Config (Specific to Day mode)
-                            let colStyles = { 0: { cellWidth: 35 }, 1: { cellWidth: 20, fontStyle: 'bold' }, 2: { cellWidth: 25 }, 3: { cellWidth: 'auto' }, 4: { cellWidth: 40 } };
+                            let colStyles = { 
+                                0: { cellWidth: 35 }, 
+                                1: { cellWidth: 20, fontStyle: 'bold' }, 
+                                2: { cellWidth: 20 }, 
+                                3: { cellWidth: 'auto' }, 
+                                4: { cellWidth: 40 } 
+                            };
 
                             // Render Table
                             doc.autoTable({
@@ -1299,8 +1847,9 @@
                                 head: headers,
                                 body: tableRows,
                                 theme: 'grid',
-                                styles: { fontSize: 10, cellPadding: 4, valign: 'middle' },
+                                styles: { fontSize: 9, cellPadding: 2, valign: 'middle' },
                                 headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold' },
+                                alternateRowStyles: { fillColor: [245, 247, 250] },
                                 columnStyles: colStyles,
                                 didParseCell: function(data) {
                                     let pIdx = 4;
@@ -1331,8 +1880,36 @@
                             return getRowData(exam, dayStr, dateStr);
                         });
 
-                        // Column Config
-                        let colStyles = { 0: { cellWidth: 30 }, 1: { cellWidth: 35 }, 2: { cellWidth: 20 }, 3: { cellWidth: 'auto' }, 4: { cellWidth: 40 } };
+                        // Column Config - CUSTOMIZED PER MODE
+                        let colStyles = {};
+                        
+                        if (mode === 'section') {
+                            colStyles = { 
+                                0: { cellWidth: 25 }, 
+                                1: { cellWidth: 35 }, 
+                                2: { cellWidth: 20 }, 
+                                3: { cellWidth: 'auto' }, 
+                                4: { cellWidth: 40 } 
+                            };
+                        } else if (mode === 'proctor') {
+                            colStyles = { 
+                                0: { cellWidth: 25 }, 
+                                1: { cellWidth: 35 }, 
+                                2: { cellWidth: 20 }, 
+                                3: { cellWidth: 25 }, 
+                                4: { cellWidth: 'auto' } 
+                            };
+                        } else if (mode === 'room') {
+                            colStyles = { 
+                                0: { cellWidth: 25 }, 
+                                1: { cellWidth: 35 }, 
+                                2: { cellWidth: 25 }, 
+                                3: { cellWidth: 'auto' }, 
+                                4: { cellWidth: 40 } 
+                            };
+                        } else {
+                            colStyles = { 0: { cellWidth: 30 }, 1: { cellWidth: 35 }, 2: { cellWidth: 20 }, 3: { cellWidth: 'auto' }, 4: { cellWidth: 40 } };
+                        }
 
                         const renderPageContent = (copyLabel) => {
                             // Title
@@ -1359,8 +1936,9 @@
                                 head: headers,
                                 body: tableRows,
                                 theme: 'grid',
-                                styles: { fontSize: 10, cellPadding: 4, valign: 'middle' },
+                                styles: { fontSize: 9, cellPadding: 2, valign: 'middle' },
                                 headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold' },
+                                alternateRowStyles: { fillColor: [245, 247, 250] },
                                 columnStyles: colStyles,
                                 didParseCell: function(data) {
                                     let pIdx = 4;
@@ -1407,10 +1985,18 @@
                                 doc.text("Date Signed", 110, finalY + 5);
                                 
                                 // Note - Only show on the copy intended for the department, not the proctor's personal copy
-                                if (copyLabel !== "Proctor's Copy") {
+                                if (copyLabel && copyLabel !== "Proctor's Copy") {
                                     doc.setFontSize(8);
                                     doc.setTextColor(100);
-                                    doc.text("Please sign and return this copy to the Department Head/Coordinator.", 14, finalY + 15);
+                                    
+                                    let recipient = "Department Head/Coordinator";
+                                    if (this.state.level === 'SHS') {
+                                        recipient = "SHS Assistant Principal";
+                                    } else if (this.state.level === 'Tertiary') {
+                                        recipient = "Exam Committee Head";
+                                    }
+                                    
+                                    doc.text(`Please sign and return this copy to the ${recipient}.`, 14, finalY + 15);
                                 }
                             }
                         };
@@ -1418,7 +2004,14 @@
                         if (mode === 'proctor') {
                             renderPageContent("Proctor's Copy");
                             doc.addPage();
-                            renderPageContent("Exam Committee Head's Copy");
+                            
+                            // Dynamic label based on level
+                            let deptCopyLabel = "Exam Committee Head's Copy";
+                            if (this.state.level === 'SHS') {
+                                deptCopyLabel = "SHS Assistant Principal's Copy";
+                            }
+                            
+                            renderPageContent(deptCopyLabel);
                         } else {
                             renderPageContent(null);
                         }
@@ -1426,7 +2019,6 @@
 
                     // Add to Zip
                     const safeName = cleanName(groupName);
-                    // For Date mode, try to keep it readable but safe e.g. 2025-12-06
                     zip.file(`${safeName}.pdf`, doc.output('blob'));
                 }
 
@@ -1465,10 +2057,133 @@
                 document.body.removeChild(link);
             }
 
+            // --- Day & Time Filter Methods ---
+
+            filterByDay(dayNumber) {
+                this.state.selectedDay = dayNumber;
+                this.renderDayFilterTabs();
+                this.populateTimeFilter();
+                this.renderSchedule();
+            }
+
+            showAllDays() {
+                this.state.selectedDay = null;
+                this.renderDayFilterTabs();
+                this.populateTimeFilter();
+                this.renderSchedule();
+            }
+
+            filterByTime(timeSlot) {
+                this.state.selectedTime = timeSlot;
+                this.renderSchedule();
+            }
+
+            populateTimeFilter() {
+                const select = document.getElementById('time-filter-select');
+                if (!select) return;
+
+                // Get all unique time slots from current filtered exams (by day if selected)
+                let examPool = this.state.exams;
+                
+                // If a day is selected, only get times from that day
+                if (this.state.selectedDay !== null && this.state.examDates) {
+                    const selectedDate = this.state.examDates[this.state.selectedDay];
+                    if (selectedDate) {
+                        const normalizeDate = (dateStr) => {
+                            if (!dateStr) return '';
+                            try {
+                                const d = new Date(dateStr);
+                                if (isNaN(d.getTime())) return dateStr;
+                                const year = d.getFullYear();
+                                const month = String(d.getMonth() + 1).padStart(2, '0');
+                                const day = String(d.getDate()).padStart(2, '0');
+                                return `${year}-${month}-${day}`;
+                            } catch (e) {
+                                return dateStr;
+                            }
+                        };
+                        const normalizedSelectedDate = normalizeDate(selectedDate);
+                        examPool = examPool.filter(exam => normalizeDate(exam.date) === normalizedSelectedDate);
+                    }
+                }
+
+                const uniqueTimes = [...new Set(examPool.map(e => e.time))].filter(t => t);
+                const sortedTimes = uniqueTimes.sort((a, b) => TimeUtils.toMinutes(a) - TimeUtils.toMinutes(b));
+
+                // Build options
+                let optionsHTML = '<option value="">All Time Slots</option>';
+                sortedTimes.forEach(time => {
+                    const selected = this.state.selectedTime === time ? 'selected' : '';
+                    optionsHTML += `<option value="${time}" ${selected}>${time}</option>`;
+                });
+
+                select.innerHTML = optionsHTML;
+            }
+
+            renderDayFilterTabs() {
+                const container = document.getElementById('day-tabs-container');
+                const filterSection = document.getElementById('day-filter-tabs');
+                
+                // Only show if we have exam dates configured
+                if (!this.state.examDates || Object.keys(this.state.examDates).length === 0) {
+                    filterSection.classList.add('hidden');
+                    return;
+                }
+
+                filterSection.classList.remove('hidden');
+                
+                const days = Object.keys(this.state.examDates).sort((a, b) => parseInt(a) - parseInt(b));
+                
+                // Build tabs HTML
+                let tabsHTML = `
+                    <button 
+                        onclick="app.showAllDays()" 
+                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            this.state.selectedDay === null 
+                            ? 'bg-blue-600 text-white shadow-md' 
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }"
+                    >
+                        <i class="fa-solid fa-calendar-days mr-1"></i> All Days
+                    </button>
+                `;
+                
+                days.forEach(dayNum => {
+                    const date = this.state.examDates[dayNum];
+                    let dateDisplay = date;
+                    try {
+                        const d = new Date(date);
+                        if (!isNaN(d)) {
+                            dateDisplay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        }
+                    } catch (e) {}
+                    
+                    const isActive = this.state.selectedDay === parseInt(dayNum);
+                    
+                    tabsHTML += `
+                        <button 
+                            onclick="app.filterByDay(${dayNum})" 
+                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                isActive 
+                                ? 'bg-blue-600 text-white shadow-md' 
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }"
+                        >
+                            <i class="fa-solid fa-calendar-day mr-1"></i> Day ${dayNum}
+                            <span class="text-xs opacity-75 ml-1">(${dateDisplay})</span>
+                        </button>
+                    `;
+                });
+                
+                container.innerHTML = tabsHTML;
+            }
+
             // --- Rendering ---
 
             updateUI() {
                 this.renderProgress();
+                this.renderDayFilterTabs();
+                this.populateTimeFilter();
                 this.renderSchedule();
                 this.renderProctorList();
                 this.renderLoadStats();
@@ -1485,64 +2200,205 @@
                 document.getElementById('progress-bar').className = `h-full transition-all duration-500 ${progress === 100 ? 'bg-green-500' : 'bg-blue-600'}`;
             }
 
-            getFilteredExams() {
-                const lowerQ = this.state.searchQuery.toLowerCase();
-                const groups = {};
-                this.state.exams.forEach(exam => {
-                    if (lowerQ && 
-                        !exam.section.toLowerCase().includes(lowerQ) &&
-                        !exam.room.toLowerCase().includes(lowerQ) &&
-                        !exam.instructor.toLowerCase().includes(lowerQ)) {
-                        return;
-                    }
-                    if (!groups[exam.time]) groups[exam.time] = [];
-                    groups[exam.time].push(exam);
-                });
-                return groups;
-            }
-
             renderSchedule() {
                 const container = document.getElementById('schedule-container');
                 const noResults = document.getElementById('no-results');
+                
+                // Helper function to normalize dates to YYYY-MM-DD format
+                const normalizeDate = (dateStr) => {
+                    if (!dateStr) return '';
+                    try {
+                        const d = new Date(dateStr);
+                        if (isNaN(d.getTime())) return dateStr; // Return original if invalid
+                        // Format as YYYY-MM-DD
+                        const year = d.getFullYear();
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                    } catch (e) {
+                        return dateStr;
+                    }
+                };
+                
+                // 1. Filter by search query
+                const lowerQ = (this.state.searchQuery || '').toLowerCase();
+                let filteredExams = this.state.exams.filter(exam => {
+                    if (!lowerQ) return true;
+                    // Check various fields including Subject and Assigned Proctor
+                    // Safely handle null/undefined values
+                    const content = [
+                        exam.section, 
+                        exam.room, 
+                        exam.instructor, 
+                        exam.subject,
+                        exam.assignedProctor
+                    ].filter(s => s) // Remove null/undefined
+                     .map(s => s.toLowerCase());
+                    
+                    return content.some(s => s.includes(lowerQ));
+                });
+
+                // 2. Filter by selected day
+                if (this.state.selectedDay !== null && this.state.examDates) {
+                    const selectedDate = this.state.examDates[this.state.selectedDay];
+                    if (selectedDate) {
+                        const normalizedSelectedDate = normalizeDate(selectedDate);
+                        filteredExams = filteredExams.filter(exam => {
+                            const normalizedExamDate = normalizeDate(exam.date);
+                            return normalizedExamDate === normalizedSelectedDate;
+                        });
+                    }
+                }
+
+                // 3. Filter by selected time
+                if (this.state.selectedTime) {
+                    filteredExams = filteredExams.filter(exam => exam.time === this.state.selectedTime);
+                }
+
+                // Handle Empty States
                 if (this.state.exams.length === 0) {
                     container.innerHTML = '';
                     noResults.classList.remove('hidden');
+                    // Reset to default empty message
+                    const h3 = noResults.querySelector('h3');
+                    const p = noResults.querySelector('p');
+                    const btn = noResults.querySelector('button');
+                    if(h3) h3.innerText = "Schedule is Empty";
+                    if(p) p.innerText = "Import a CSV file to get started.";
+                    if(btn) btn.classList.remove('hidden');
                     return;
                 }
-                const groups = this.getFilteredExams();
-                container.innerHTML = '';
-                if (Object.keys(groups).length === 0) {
+
+                if (filteredExams.length === 0) {
+                    container.innerHTML = '';
                     noResults.classList.remove('hidden');
-                    if(this.state.exams.length > 0) {
-                        noResults.innerHTML = '<p class="text-slate-400 py-10">No exams match your search.</p>';
-                    }
+                    // Search/Filter no match state
+                    const h3 = noResults.querySelector('h3');
+                    const p = noResults.querySelector('p');
+                    const btn = noResults.querySelector('button');
+                    if(h3) h3.innerText = "No Matches Found";
+                    if(p) p.innerText = this.state.selectedDay !== null 
+                        ? `No exams scheduled for Day ${this.state.selectedDay}.` 
+                        : "Try adjusting your search criteria.";
+                    if(btn) btn.classList.add('hidden');
                     return;
                 } else {
                     noResults.classList.add('hidden');
                 }
-                Object.keys(groups).forEach(time => {
-                    const sectionHTML = `
-                        <div class="animate-fade-in">
-                            <div class="flex items-center gap-2 mb-4">
-                                <i class="fa-regular fa-clock text-blue-600 text-lg"></i>
-                                <h2 class="text-lg font-bold text-slate-800">${time}</h2>
-                                <div class="h-px bg-slate-200 flex-1 ml-4"></div>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                ${groups[time].map(exam => this.createExamCardHTML(exam)).join('')}
-                            </div>
+
+                container.innerHTML = '';
+
+                // 4. Group by Date
+                const examsByDate = {};
+                filteredExams.forEach(exam => {
+                    // Use exam.date. If empty, group under "Unscheduled Date"
+                    const dateKey = exam.date || 'Unscheduled Date';
+                    if (!examsByDate[dateKey]) examsByDate[dateKey] = [];
+                    examsByDate[dateKey].push(exam);
+                });
+
+                // 5. Sort Dates
+                const sortedDates = Object.keys(examsByDate).sort((a, b) => {
+                    if (a === 'Unscheduled Date') return 1;
+                    if (b === 'Unscheduled Date') return -1;
+                    return new Date(a) - new Date(b);
+                });
+
+                // 6. Render
+                sortedDates.forEach(date => {
+                    // Group by Time within Date
+                    const examsByTime = {};
+                    examsByDate[date].forEach(exam => {
+                        const t = exam.time || 'TBA';
+                        if (!examsByTime[t]) examsByTime[t] = [];
+                        examsByTime[t].push(exam);
+                    });
+
+
+                    // Sort Times - only include times that have exams
+                    const sortedTimes = Object.keys(examsByTime)
+                        .filter(time => examsByTime[time].length > 0) // Only show times with exams
+                        .sort((a, b) => {
+                            if (a === 'TBA') return 1;
+                            if (b === 'TBA') return -1;
+                            return TimeUtils.toMinutes(a) - TimeUtils.toMinutes(b);
+                        });
+                    
+                    // Skip rendering this date if no times have exams (shouldn't happen but safety check)
+                    if (sortedTimes.length === 0) return;
+
+
+                    // Determine Day Label (e.g., Day 1, Day 2)
+                    let dayBadge = '';
+                    let dayNum = null;
+                    if (this.state.examDates) {
+                        dayNum = Object.keys(this.state.examDates).find(key => this.state.examDates[key] === date);
+                        if (dayNum) {
+                            dayBadge = `<span class="bg-blue-600 text-white text-sm font-bold px-4 py-2 rounded-lg mr-4 uppercase tracking-wider shadow-md">
+                                <i class="fa-solid fa-calendar-day mr-2"></i>Day ${dayNum}
+                            </span>`;
+                        }
+                    }
+
+                    // Format Date
+                    let dateDisplay = date;
+                    if (date !== 'Unscheduled Date') {
+                        try {
+                            const d = new Date(date);
+                            if (!isNaN(d)) {
+                                dateDisplay = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                            }
+                        } catch (e) {}
+                    }
+
+                    // Build Day Container
+                    const dayContainer = document.createElement('div');
+                    dayContainer.className = "mb-12 animate-fade-in";
+                    
+                    const headerHtml = `
+                        <div class="flex items-center mb-6 pb-4 border-b-2 border-blue-100 sticky top-16 bg-slate-50 z-10 pt-4">
+                            ${dayBadge}
+                            <h2 class="text-2xl font-bold text-slate-800">${dateDisplay}</h2>
                         </div>
                     `;
-                    container.innerHTML += sectionHTML;
+                    dayContainer.innerHTML = headerHtml;
+
+                    // Build Time Slots
+                    sortedTimes.forEach(time => {
+                        const timeWrapper = document.createElement('div');
+                        timeWrapper.className = "mb-8";
+                        
+                        // Time Header
+                        timeWrapper.innerHTML = `
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="bg-blue-50 text-blue-600 p-2 rounded-lg">
+                                    <i class="fa-regular fa-clock"></i>
+                                </div>
+                                <h3 class="text-lg font-bold text-slate-700">${time}</h3>
+                                <div class="h-px bg-slate-100 flex-1"></div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                ${examsByTime[time].map(exam => this.createExamCardHTML(exam)).join('')}
+                            </div>
+                        `;
+                        dayContainer.appendChild(timeWrapper);
+                    });
+
+                    container.appendChild(dayContainer);
                 });
             }
 
             createExamCardHTML(exam) {
                 const isAssigned = !!exam.assignedProctor;
+                
                 const options = [`<option value="">Select Proctor...</option>`]
-                    .concat(this.state.proctors.map(p => 
-                        `<option value="${p}" ${exam.assignedProctor === p ? 'selected' : ''}>${p}</option>`
-                    )).join('');
+                    .concat(this.state.proctors.map(p => {
+                        const selected = exam.assignedProctor === p ? 'selected' : '';
+                        const isConflict = this.hasSubjectConflict(p, exam.subject);
+                        const disabled = isConflict ? 'disabled' : '';
+                        const label = isConflict ? `${p} (Teaches Subject)` : p;
+                        return `<option value="${p}" ${selected} ${disabled} class="${isConflict ? 'text-gray-400 bg-gray-100 italic' : ''}">${label}</option>`;
+                    })).join('');
 
                 const roomClass = (exam.room === 'TBA' || !exam.room) ? 'text-orange-500 bg-orange-50 border-orange-200' : 'text-slate-500';
 
@@ -1593,14 +2449,24 @@
                 const counts = this.getProctorCounts();
                 listContainer.innerHTML = this.state.proctors.map(p => {
                     const restrictions = this.state.unavailability[p] ? this.state.unavailability[p].length : 0;
+                    const subjectConflicts = this.state.proctorSubjects[p] ? this.state.proctorSubjects[p].length : 0;
+                    
                     return `
                     <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-100 hover:border-blue-200 transition-colors group">
                         <span class="font-medium text-slate-700">${p}</span>
                         <div class="flex items-center gap-2">
-                            ${restrictions > 0 ? `<span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full"><i class="fa-solid fa-ban text-[10px] mr-1"></i>${restrictions}</span>` : ''}
+                            ${subjectConflicts > 0 ? `<span class="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded-full" title="Subject Conflicts"><i class="fa-solid fa-book-open text-[10px] mr-1"></i>${subjectConflicts}</span>` : ''}
+                            ${restrictions > 0 ? `<span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full" title="Time Restrictions"><i class="fa-solid fa-ban text-[10px] mr-1"></i>${restrictions}</span>` : ''}
                             <span class="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded-full">
                                 ${counts[p] || 0} assigned
                             </span>
+                            <button 
+                                onclick="app.openSubjectConflictModal('${p}')"
+                                class="text-slate-400 hover:text-purple-500 p-1"
+                                title="Manage Handled Subjects (Conflicts)"
+                            >
+                                <i class="fa-solid fa-book-open"></i>
+                            </button>
                             <button 
                                 onclick="app.openAvailabilityModal('${p}')"
                                 class="text-slate-400 hover:text-blue-500 p-1"
