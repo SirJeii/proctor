@@ -1905,9 +1905,9 @@
                         if (!groups[key]) groups[key] = [];
                         groups[key].push(exam);
                     });
-                    headers = [['Time', 'Room', 'Section', 'Subject', 'Proctor']];
+                    headers = [['Time', 'Room', 'Section', 'Subject', 'Instructor', 'Proctor']];
                     getRowData = (exam, dayStr, dateStr) => [
-                        exam.time, exam.room || 'TBA', exam.section, exam.subject, exam.assignedProctor || 'Unassigned'
+                        exam.time, exam.room || 'TBA', exam.section, exam.subject, exam.instructor, exam.assignedProctor || 'Unassigned'
                     ];
                 }
 
@@ -1977,12 +1977,14 @@
                              });
 
                             // Column Config (Specific to Day mode)
+                            // Headers: Time(0), Room(1), Section(2), Subject(3), Instructor(4), Proctor(5)
                             let colStyles = { 
-                                0: { cellWidth: 35 }, 
-                                1: { cellWidth: 20, fontStyle: 'bold' }, 
-                                2: { cellWidth: 20 }, 
+                                0: { cellWidth: 30 }, 
+                                1: { cellWidth: 18, fontStyle: 'bold' }, 
+                                2: { cellWidth: 18 }, 
                                 3: { cellWidth: 'auto' }, 
-                                4: { cellWidth: 40 } 
+                                4: { cellWidth: 35 },
+                                5: { cellWidth: 35 } 
                             };
 
                             // Render Table
@@ -1996,7 +1998,7 @@
                                 alternateRowStyles: { fillColor: [245, 247, 250] },
                                 columnStyles: colStyles,
                                 didParseCell: function(data) {
-                                    let pIdx = 4;
+                                    let pIdx = 5; // Proctor column is now at index 5
                                     if (data.section === 'body' && data.column.index === pIdx) {
                                         if (data.cell.raw === 'Unassigned') data.cell.styles.textColor = [220, 38, 38];
                                         else data.cell.styles.textColor = [22, 101, 52];
@@ -2162,7 +2164,24 @@
                     }
 
                     // Add to Zip
-                    const safeName = cleanName(groupName);
+                    let safeName = cleanName(groupName);
+                    
+                    // For 'day' mode, use format: Day_X_DATE
+                    if (mode === 'day') {
+                        // Find which day number this date corresponds to
+                        let dayNum = null;
+                        if (this.state.examDates) {
+                            dayNum = Object.keys(this.state.examDates).find(key => this.state.examDates[key] === groupName);
+                        }
+                        
+                        if (dayNum) {
+                            safeName = `Day_${dayNum}_${groupName}`;
+                        } else {
+                            // Fallback if day number not found
+                            safeName = cleanName(groupName);
+                        }
+                    }
+                    
                     zip.file(`${safeName}.pdf`, doc.output('blob'));
                 }
 
