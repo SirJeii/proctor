@@ -525,6 +525,21 @@
             <div class="lg:col-span-1">
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-24">
                     <h3 class="text-lg font-bold mb-4">Proctor Load Summary</h3>
+                    
+                    <!-- Day Filter for Load Summary -->
+                    <div id="load-day-filter" class="mb-4 hidden">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                            <i class="fa-solid fa-filter mr-1"></i> Filter by Day
+                        </label>
+                        <select 
+                            id="load-day-select" 
+                            onchange="app.filterLoadByDay(this.value)"
+                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer bg-white"
+                        >
+                            <option value="">All Days</option>
+                        </select>
+                    </div>
+                    
                     <div id="load-stats" class="space-y-4">
                     </div>
                 </div>
@@ -596,7 +611,8 @@
                             editingProctor: null,
                             pendingConfirmAction: null, // Stores the function to execute on confirm
                             selectedDay: null, // null = show all days, number = show specific day
-                            selectedTime: '' // empty = show all times, string = show specific time
+                            selectedTime: '', // empty = show all times, string = show specific time
+                            selectedLoadDay: null // null = show all days for load summary
                         };
                         // Migration for old saves that might not have proctorSubjects
                         if (!this.state.proctorSubjects) {
@@ -620,7 +636,8 @@
                     exams: [...INITIAL_EXAMS],
                     proctors: [...INITIAL_PROCTORS],
                     unavailability: {},
-                    proctorSubjects: {} // { "Proctor Name": ["Math", "Science"] }
+                    proctorSubjects: {}, // { "Proctor Name": ["Math", "Science"] }
+                    selectedLoadDay: null // null = show all days, number = show specific day for load summary
                 };
             }
 
@@ -671,6 +688,29 @@
                 this.closeConfirmModal();
             }
 
+            // Helper method for simple alert-style modals (single OK button)
+            showAlert(title, message, type = 'info') {
+                const iconConfig = {
+                    'error': { iconClass: 'fa-solid fa-circle-xmark', iconBgClass: 'bg-red-100', iconColorClass: 'text-red-600' },
+                    'warning': { iconClass: 'fa-solid fa-triangle-exclamation', iconBgClass: 'bg-yellow-100', iconColorClass: 'text-yellow-600' },
+                    'success': { iconClass: 'fa-solid fa-circle-check', iconBgClass: 'bg-green-100', iconColorClass: 'text-green-600' },
+                    'info': { iconClass: 'fa-solid fa-circle-info', iconBgClass: 'bg-blue-100', iconColorClass: 'text-blue-600' }
+                };
+                
+                const config = iconConfig[type] || iconConfig['info'];
+                
+                this.showConfirm({
+                    title: title,
+                    message: message,
+                    iconClass: config.iconClass,
+                    iconBgClass: config.iconBgClass,
+                    iconColorClass: config.iconColorClass,
+                    btnClass: "bg-blue-600 hover:bg-blue-700 shadow-blue-200",
+                    btnText: "OK",
+                    onConfirm: () => {} // No action needed, just close
+                });
+            }
+
             // --- Actions ---
 
             resetData() {
@@ -691,7 +731,7 @@
 
             autoAssignRooms() {
                 if (!this.state.level) {
-                    alert("Please select an academic level first (reload page).");
+                    this.showAlert("Level Required", "Please select an academic level first (reload page).", 'warning');
                     return;
                 }
                 const validRooms = ROOMS[this.state.level];
@@ -744,13 +784,13 @@
                 this.updateUI();
                 
                 let msg = `Assigned rooms to ${assignedCount} exams.`;
-                if (failedCount > 0) msg += `\nWarning: Could not assign rooms for ${failedCount} exams due to lack of space in this time slot.`;
-                alert(msg);
+                if (failedCount > 0) msg += `\n\nWarning: Could not assign rooms for ${failedCount} exams due to lack of space in this time slot.`;
+                this.showAlert("Room Assignment Complete", msg, failedCount > 0 ? 'warning' : 'success');
             }
             
             autoAssign() {
                 if(this.state.exams.length === 0) {
-                    alert("No exams to assign. Import a schedule first.");
+                    this.showAlert("No Data", "No exams to assign. Import a schedule first.", 'warning');
                     return;
                 }
                 
@@ -883,12 +923,12 @@
                 const end = document.getElementById('avail-end-input').value;
 
                 if (!isEveryDay && !dateVal) {
-                    alert("Please select a date or check 'Every Day'.");
+                    this.showAlert("Validation Error", "Please select a date or check 'Every Day'.", 'warning');
                     return;
                 }
 
                 if (!start || !end) {
-                    alert("Please enter both start and end times.");
+                    this.showAlert("Validation Error", "Please enter both start and end times.", 'warning');
                     return;
                 }
 
@@ -949,7 +989,7 @@
             // --- Export Unavailability as JSON ---
             exportUnavailabilityJSON() {
                 if (Object.keys(this.state.unavailability).length === 0) {
-                    alert("No unavailability data to export.");
+                    this.showAlert("No Data", "No unavailability data to export.", 'info');
                     return;
                 }
 
@@ -983,31 +1023,35 @@
                         const data = JSON.parse(e.target.result);
                         
                         if (!data.unavailability) {
-                            alert('Invalid JSON file: Missing unavailability data.');
+                            this.showAlert("Invalid File", "Invalid JSON file: Missing unavailability data.", 'error');
                             return;
                         }
 
-                        // Merge or replace?
-                        const shouldMerge = confirm('Do you want to MERGE with existing data?\n\nClick OK to merge, Cancel to replace all existing unavailability data.');
-
-                        if (shouldMerge) {
-                            // Merge: Add new rules to existing proctors
-                            Object.keys(data.unavailability).forEach(proctor => {
-                                if (!this.state.unavailability[proctor]) {
-                                    this.state.unavailability[proctor] = [];
-                                }
-                                this.state.unavailability[proctor].push(...data.unavailability[proctor]);
-                            });
-                        } else {
-                            // Replace all
-                            this.state.unavailability = data.unavailability;
-                        }
-
-                        this.saveState();
-                        this.updateUI();
-                        this.showToast(`Unavailability data imported successfully! (${shouldMerge ? 'Merged' : 'Replaced'})`);
+                        // Merge with existing data using modal
+                        this.showConfirm({
+                            title: "Import Mode",
+                            message: "Do you want to MERGE with existing data?\n\nClick 'Merge' to add to existing data, or 'Cancel' to skip import.",
+                            iconClass: "fa-solid fa-file-import",
+                            iconBgClass: "bg-purple-100",
+                            iconColorClass: "text-purple-600",
+                            btnClass: "bg-purple-600 hover:bg-purple-700 shadow-purple-200",
+                            btnText: "Merge",
+                            onConfirm: () => {
+                                // Merge: Add new rules to existing proctors
+                                Object.keys(data.unavailability).forEach(proctor => {
+                                    if (!this.state.unavailability[proctor]) {
+                                        this.state.unavailability[proctor] = [];
+                                    }
+                                    this.state.unavailability[proctor].push(...data.unavailability[proctor]);
+                                });
+                                
+                                this.saveState();
+                                this.updateUI();
+                                this.showToast('Unavailability data imported and merged successfully!', 'success');
+                            }
+                        });
                     } catch (error) {
-                        alert('Error parsing JSON file: ' + error.message);
+                        this.showAlert("Import Error", `Error parsing JSON file: ${error.message}`, 'error');
                     }
                 };
                 reader.readAsText(file);
@@ -1019,7 +1063,7 @@
             // --- Export Unavailability as CSV (Backup) ---
             exportUnavailabilityCSV() {
                 if (Object.keys(this.state.unavailability).length === 0) {
-                    alert("No unavailability data to export.");
+                    this.showAlert("No Data", "No unavailability data to export.", 'info');
                     return;
                 }
 
@@ -1133,7 +1177,7 @@
                 // Prevent duplicates (case insensitive)
                 const exists = this.state.proctorSubjects[proctor].some(s => s.toLowerCase() === subject.toLowerCase());
                 if (exists) {
-                    alert("This subject is already added.");
+                    this.showAlert("Duplicate Subject", "This subject is already added.", 'warning');
                     return;
                 }
 
@@ -1246,7 +1290,7 @@
 
                 // Validation: Need at least Day 1
                 if(!dates[1]) {
-                    alert("Please select a date for at least Day 1.");
+                    this.showAlert("Validation Error", "Please select a date for at least Day 1.", 'warning');
                     return;
                 }
 
@@ -1332,7 +1376,7 @@
             parseCSV(text) {
                 const lines = text.split('\n').filter(line => line.trim() !== '');
                 if (lines.length < 2) {
-                    alert('Invalid CSV: File appears empty or missing headers.');
+                    this.showAlert("Invalid CSV", "File appears empty or missing headers.", 'error');
                     return;
                 }
 
@@ -1355,7 +1399,7 @@
                 const missing = required.filter(field => idx[field] === -1);
                 
                 if (missing.length > 0) {
-                    alert(`Invalid CSV Format. Missing required columns: ${missing.join(', ').toUpperCase()}`);
+                    this.showAlert("Invalid CSV Format", `Missing required columns: ${missing.join(', ').toUpperCase()}`, 'error');
                     return;
                 }
 
@@ -1454,16 +1498,16 @@
                         message += `\n\nNote: Instructors will not be assigned to proctor their own subject exams.`;
                     }
                     
-                    alert(message);
+                    this.showAlert("Import Successful", message, 'success');
                 } else {
-                    alert('No valid exam rows found.');
+                    this.showAlert("No Data Found", "No valid exam rows found in the CSV file.", 'warning');
                 }
             }
 
             parseAvailabilityCSV(text) {
                 const lines = text.split('\n').filter(line => line.trim() !== '');
                 if (lines.length < 2) {
-                    alert('Invalid CSV: File appears empty or missing headers.');
+                    this.showAlert("Invalid CSV", "File appears empty or missing headers.", 'error');
                     return;
                 }
 
@@ -1514,11 +1558,111 @@
             // --- Assignment Logic ---
 
             assignProctor(examId, proctorName) {
-                this.state.exams = this.state.exams.map(exam => 
-                    exam.id === examId ? { ...exam, assignedProctor: proctorName } : exam
+                // If unassigning (empty selection), allow it
+                if (!proctorName) {
+                    this.state.exams = this.state.exams.map(exam =>
+                        exam.id === examId ? { ...exam, assignedProctor: '' } : exam
+                    );
+                    this.saveState();
+                    this.updateUI();
+                    return;
+                }
+
+                // Find the exam being assigned
+                const exam = this.state.exams.find(e => e.id === examId);
+                if (!exam) return;
+
+                // STRICT VALIDATION CHECKS (same as automatic assignment logic)
+                
+                // Check 1: Availability - BLOCK if proctor is unavailable
+                if (this.isProctorUnavailable(proctorName, exam.date, exam.time)) {
+                    this.showConfirm({
+                        title: "❌ Assignment Blocked",
+                        message: `${proctorName} is marked as UNAVAILABLE during this time slot:\n\n• ${exam.time} on ${exam.date}\n\nPlease check their availability settings or choose another proctor.`,
+                        iconClass: "fa-solid fa-ban",
+                        iconBgClass: "bg-red-100",
+                        iconColorClass: "text-red-600",
+                        btnClass: "bg-blue-600 hover:bg-blue-700 shadow-blue-200",
+                        btnText: "OK",
+                        onConfirm: () => {
+                            this.updateUI(); // Reset the dropdown
+                        }
+                    });
+                    return;
+                }
+
+                // Check 2: Subject Conflict - BLOCK if proctor teaches this subject
+                if (this.hasSubjectConflict(proctorName, exam.subject)) {
+                    this.showConfirm({
+                        title: "❌ Assignment Blocked",
+                        message: `${proctorName} teaches "${exam.subject}" and cannot proctor their own subject exam.\n\nThis is the same rule applied by automatic assignment.\n\nPlease choose another proctor.`,
+                        iconClass: "fa-solid fa-book-open",
+                        iconBgClass: "bg-purple-100",
+                        iconColorClass: "text-purple-600",
+                        btnClass: "bg-blue-600 hover:bg-blue-700 shadow-blue-200",
+                        btnText: "OK",
+                        onConfirm: () => {
+                            this.updateUI(); // Reset the dropdown
+                        }
+                    });
+                    return;
+                }
+
+                // Check 3: Simultaneous Assignment - BLOCK if proctor is already assigned at same time
+                const simultaneousAssignment = this.state.exams.find(e =>
+                    e.id !== examId &&
+                    e.date === exam.date &&
+                    e.time === exam.time &&
+                    e.assignedProctor === proctorName
                 );
-                this.saveState(); // Save changes
+                
+                if (simultaneousAssignment) {
+                    this.showConfirm({
+                        title: "❌ Assignment Blocked",
+                        message: `${proctorName} is already assigned to proctor another exam at the same time:\n\n• ${simultaneousAssignment.subject}\n• Section: ${simultaneousAssignment.section}\n• Room: ${simultaneousAssignment.room || 'TBA'}\n• Time: ${exam.time}\n\nA proctor cannot be in two places at once.\n\nPlease choose another proctor or unassign them from the other exam first.`,
+                        iconClass: "fa-solid fa-clone",
+                        iconBgClass: "bg-orange-100",
+                        iconColorClass: "text-orange-600",
+                        btnClass: "bg-blue-600 hover:bg-blue-700 shadow-blue-200",
+                        btnText: "OK",
+                        onConfirm: () => {
+                            this.updateUI(); // Reset the dropdown
+                        }
+                    });
+                    return;
+                }
+
+                // Optional Check 4: High Workload Warning (non-blocking, just informational)
+                const currentLoad = this.state.exams.filter(e => e.assignedProctor === proctorName).length;
+                if (currentLoad >= 4) {
+                    this.showConfirm({
+                        title: "⚠️ High Workload Warning",
+                        message: `${proctorName} will have ${currentLoad + 1} total assignments.\n\nThis is a high workload. Do you want to proceed?`,
+                        iconClass: "fa-solid fa-triangle-exclamation",
+                        iconBgClass: "bg-yellow-100",
+                        iconColorClass: "text-yellow-600",
+                        btnClass: "bg-blue-600 hover:bg-blue-700 shadow-blue-200",
+                        btnText: "Proceed Anyway",
+                        onConfirm: () => {
+                            // Proceed with assignment
+                            this.state.exams = this.state.exams.map(e =>
+                                e.id === examId ? { ...e, assignedProctor: proctorName } : e
+                            );
+                            this.saveState();
+                            this.updateUI();
+                            this.showToast(`✓ ${proctorName} assigned successfully!`, 'success');
+                        }
+                    });
+                    return;
+                }
+
+                // All checks passed - proceed with assignment
+                this.state.exams = this.state.exams.map(e =>
+                    e.id === examId ? { ...e, assignedProctor: proctorName } : e
+                );
+                this.saveState();
                 this.updateUI();
+                this.showToast(`✓ ${proctorName} assigned successfully!`, 'success');
             }
 
             addProctor() {
@@ -1682,9 +1826,9 @@
                 this.updateUI();
                 
                 if (unassignedCount > 0) {
-                    alert(`Auto-assignment complete. ${unassignedCount} exams unassigned due to conflicts or lack of available proctors.`);
+                    this.showAlert("Assignment Complete", `Auto-assignment complete.\n\n${unassignedCount} exams remain unassigned due to conflicts or lack of available proctors.`, 'warning');
                 } else {
-                    alert("Auto-assignment complete! Schedule optimized for availability, subject conflicts, breaks, and load.");
+                    this.showAlert("Assignment Complete", "Auto-assignment complete! Schedule optimized for availability, subject conflicts, breaks, and load.", 'success');
                 }
             }
 
@@ -1692,7 +1836,7 @@
 
             showExportModal() {
                 if(this.state.exams.length === 0) {
-                    alert("No data to export.");
+                    this.showAlert("No Data", "No data to export.", 'info');
                     return;
                 }
                 document.getElementById('export-modal').classList.remove('hidden');
@@ -2034,7 +2178,7 @@
 
             exportCSV() {
                 if(this.state.exams.length === 0) {
-                    alert("No data to export.");
+                    this.showAlert("No Data", "No data to export.", 'info');
                     return;
                 }
                 const headers = ['Date', 'Time', 'Room', 'Section', 'Subject', 'Instructor', 'Assigned Proctor'];
@@ -2486,15 +2630,86 @@
                 `}).join('');
             }
 
-            renderLoadStats() {
-                const statsContainer = document.getElementById('load-stats');
-                const counts = this.getProctorCounts();
-                const sortedProctors = Object.entries(counts).sort(([,a], [,b]) => b - a);
-                if (sortedProctors.length === 0) {
-                    statsContainer.innerHTML = '<p class="text-slate-400 text-sm">No proctors assigned yet.</p>';
+            // NEW: Filter load summary by day
+            filterLoadByDay(dayValue) {
+                this.state.selectedLoadDay = dayValue ? parseInt(dayValue) : null;
+                this.renderLoadStats();
+            }
+
+            // NEW: Populate load day filter dropdown
+            populateLoadDayFilter() {
+                const select = document.getElementById('load-day-select');
+                const filterContainer = document.getElementById('load-day-filter');
+                
+                if (!select || !filterContainer) return;
+                
+                // Only show if we have exam dates configured
+                if (!this.state.examDates || Object.keys(this.state.examDates).length === 0) {
+                    filterContainer.classList.add('hidden');
                     return;
                 }
-                statsContainer.innerHTML = sortedProctors.map(([name, count]) => {
+                
+                filterContainer.classList.remove('hidden');
+                
+                const days = Object.keys(this.state.examDates).sort((a, b) => parseInt(a) - parseInt(b));
+                
+                // Build options
+                let optionsHTML = '<option value="">All Days</option>';
+                days.forEach(dayNum => {
+                    const date = this.state.examDates[dayNum];
+                    let dateDisplay = date;
+                    try {
+                        const d = new Date(date);
+                        if (!isNaN(d)) {
+                            dateDisplay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        }
+                    } catch (e) {}
+                    
+                    const selected = this.state.selectedLoadDay === parseInt(dayNum) ? 'selected' : '';
+                    optionsHTML += `<option value="${dayNum}" ${selected}>Day ${dayNum} (${dateDisplay})</option>`;
+                });
+                
+                select.innerHTML = optionsHTML;
+            }
+
+            renderLoadStats() {
+                const statsContainer = document.getElementById('load-stats');
+                
+                // Update the filter dropdown
+                this.populateLoadDayFilter();
+                
+                // Get counts with optional day filtering
+                const counts = this.getProctorCounts(this.state.selectedLoadDay);
+                const sortedProctors = Object.entries(counts).sort(([,a], [,b]) => b - a);
+                
+                if (sortedProctors.length === 0) {
+                    const filterMsg = this.state.selectedLoadDay !== null 
+                        ? `No proctors assigned for Day ${this.state.selectedLoadDay}.` 
+                        : 'No proctors assigned yet.';
+                    statsContainer.innerHTML = `<p class="text-slate-400 text-sm">${filterMsg}</p>`;
+                    return;
+                }
+                
+                // Add filter indicator if a day is selected
+                let filterIndicator = '';
+                if (this.state.selectedLoadDay !== null) {
+                    const dateStr = this.state.examDates[this.state.selectedLoadDay];
+                    let dateDisplay = dateStr;
+                    try {
+                        const d = new Date(dateStr);
+                        if (!isNaN(d)) {
+                            dateDisplay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        }
+                    } catch (e) {}
+                    
+                    filterIndicator = `
+                        <div class="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700 flex items-center justify-between">
+                            <span><i class="fa-solid fa-filter mr-1"></i> Showing Day ${this.state.selectedLoadDay} (${dateDisplay})</span>
+                        </div>
+                    `;
+                }
+                
+                statsContainer.innerHTML = filterIndicator + sortedProctors.map(([name, count]) => {
                     const width = Math.min((count / 5) * 100, 100);
                     const colorClass = count > 3 ? 'bg-orange-500' : (count > 0 ? 'bg-blue-500' : 'bg-slate-300');
                     const isHighLoad = count > 3;
@@ -2503,7 +2718,7 @@
                             <div class="flex-1">
                                 <div class="flex justify-between text-sm mb-1">
                                     <span class="font-medium text-slate-700">${name}</span>
-                                    <span class="text-slate-500">${count} exams</span>
+                                    <span class="text-slate-500">${count} exam${count !== 1 ? 's' : ''}</span>
                                 </div>
                                 <div class="w-full bg-slate-100 rounded-full h-2">
                                     <div 
@@ -2518,14 +2733,43 @@
                 }).join('');
             }
 
-            getProctorCounts() {
+            getProctorCounts(filterByDay = null) {
                 const counts = {};
                 this.state.proctors.forEach(p => counts[p] = 0);
-                this.state.exams.forEach(exam => {
+                
+                // Helper function to normalize dates
+                const normalizeDate = (dateStr) => {
+                    if (!dateStr) return '';
+                    try {
+                        const d = new Date(dateStr);
+                        if (isNaN(d.getTime())) return dateStr;
+                        const year = d.getFullYear();
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                    } catch (e) {
+                        return dateStr;
+                    }
+                };
+                
+                // Filter exams by day if specified
+                let examsToCount = this.state.exams;
+                if (filterByDay !== null && this.state.examDates) {
+                    const selectedDate = this.state.examDates[filterByDay];
+                    if (selectedDate) {
+                        const normalizedSelectedDate = normalizeDate(selectedDate);
+                        examsToCount = this.state.exams.filter(exam => 
+                            normalizeDate(exam.date) === normalizedSelectedDate
+                        );
+                    }
+                }
+                
+                examsToCount.forEach(exam => {
                     if (exam.assignedProctor) {
                         counts[exam.assignedProctor] = (counts[exam.assignedProctor] || 0) + 1;
                     }
                 });
+                
                 return counts;
             }
 
