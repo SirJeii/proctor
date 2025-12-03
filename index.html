@@ -1328,8 +1328,8 @@
             // --- Import / Export ---
 
             downloadTemplate() {
-                const headers = ['Day', 'Date', 'Time', 'Subject', 'Instructor', 'Room', 'Section'];
-                const example = ['Monday', '2025-12-06', '08:30AM - 10:00AM', 'Introduction to Computing', 'Mr. Smith', '', 'IT101'];
+                const headers = ['Day', 'Date', 'Time', 'Subject', 'Instructor', 'Room', 'Section', 'Assigned Proctor'];
+                const example = ['Day 1', '2025-12-06', '08:30AM - 10:00AM', 'Introduction to Computing', 'Mr. Smith', '301', 'IT101', ''];
                 
                 const csvContent = "data:text/csv;charset=utf-8," 
                     + headers.join(",") + "\n" 
@@ -1413,7 +1413,8 @@
                     instructor: getIndex('instructor'),
                     room: getIndex('room'),
                     section: getIndex('section'),
-                    day: getIndex('day') // Optional column 'Day' (e.g. Day 1, Day 2)
+                    day: getIndex('day'), // Optional column 'Day' (e.g. Day 1, Day 2)
+                    assignedProctor: getIndex('assigned proctor') // NEW: Handle assigned proctor column
                 };
 
                 const required = ['time', 'subject', 'instructor']; // Date not strictly required if we have Day mapping
@@ -1427,6 +1428,9 @@
                 const newExams = [];
                 // Track instructor-subject relationships for automatic loading
                 const instructorSubjects = {}; // { "Instructor Name": Set(["Subject1", "Subject2"]) }
+                // Track proctors found in the CSV
+                const proctorsInCSV = new Set();
+                let assignedProctorCount = 0;
                 
                 for (let i = 1; i < lines.length; i++) {
                     const row = lines[i].split(',').map(cell => cell.trim());
@@ -1453,6 +1457,19 @@
 
                     const subject = row[idx.subject].replace(/^"|"$/g, '');
                     const instructor = row[idx.instructor];
+                    
+                    // NEW: Get assigned proctor if column exists
+                    let assignedProctor = '';
+                    if (idx.assignedProctor !== -1 && row[idx.assignedProctor]) {
+                        assignedProctor = row[idx.assignedProctor].trim();
+                        // Don't import if it's a placeholder value
+                        if (assignedProctor.toUpperCase() === 'UNASSIGNED' || assignedProctor === '') {
+                            assignedProctor = '';
+                        } else {
+                            proctorsInCSV.add(assignedProctor);
+                            assignedProctorCount++;
+                        }
+                    }
 
                     // Track instructor-subject relationship
                     if (instructor && subject) {
@@ -1470,7 +1487,7 @@
                         instructor: instructor,
                         room: (idx.room !== -1 && row[idx.room]) ? row[idx.room] : 'TBA',
                         section: idx.section !== -1 ? row[idx.section] : 'General',
-                        assignedProctor: ''
+                        assignedProctor: assignedProctor // NEW: Import assigned proctor
                     });
                 }
 
@@ -1507,12 +1524,27 @@
                         });
                     });
                     
+                    // NEW: Add proctors found in Assigned Proctor column
+                    let addedProctors = 0;
+                    proctorsInCSV.forEach(proctor => {
+                        if (!this.state.proctors.includes(proctor)) {
+                            this.state.proctors.push(proctor);
+                            addedProctors++;
+                        }
+                    });
+                    
                     this.saveState(); // Save imported data
                     this.updateUI();
                     
                     let message = `Successfully imported ${newExams.length} exams.`;
+                    if (assignedProctorCount > 0) {
+                        message += `\n\n✓ Restored ${assignedProctorCount} proctor assignment(s).`;
+                    }
                     if (addedInstructors > 0) {
-                        message += `\n\n✓ Added ${addedInstructors} instructor(s) to proctor list.`;
+                        message += `\n✓ Added ${addedInstructors} instructor(s) to proctor list.`;
+                    }
+                    if (addedProctors > 0) {
+                        message += `\n✓ Added ${addedProctors} proctor(s) from assignments.`;
                     }
                     if (updatedInstructors > 0) {
                         message += `\n✓ Configured ${Object.keys(instructorSubjects).length} instructor(s) with their taught subjects.`;
@@ -2206,24 +2238,61 @@
                     this.showAlert("No Data", "No data to export.", 'info');
                     return;
                 }
-                const headers = ['Date', 'Time', 'Room', 'Section', 'Subject', 'Instructor', 'Assigned Proctor'];
+                
+                // Helper to find which day number corresponds to a date
+                const getDayLabel = (examDate) => {
+                    if (!examDate || !this.state.examDates) return '';
+                    
+                    // Normalize the exam date for comparison
+                    const normalizeDate = (dateStr) => {
+                        if (!dateStr) return '';
+                        try {
+                            const d = new Date(dateStr);
+                            if (isNaN(d.getTime())) return dateStr;
+                            const year = d.getFullYear();
+                            const month = String(d.getMonth() + 1).padStart(2, '0');
+                            const day = String(d.getDate()).padStart(2, '0');
+                            return `${year}-${month}-${day}`;
+                        } catch (e) {
+                            return dateStr;
+                        }
+                    };
+                    
+                    const normalizedExamDate = normalizeDate(examDate);
+                    
+                    // Find matching day number
+                    const dayNum = Object.keys(this.state.examDates).find(key => 
+                        normalizeDate(this.state.examDates[key]) === normalizedExamDate
+                    );
+                    
+                    return dayNum ? `Day ${dayNum}` : '';
+                };
+                
+                // Headers matching the template format
+                const headers = ['Day', 'Date', 'Time', 'Subject', 'Instructor', 'Room', 'Section', 'Assigned Proctor'];
+                
+                // Build rows with proper column order
                 const rows = this.state.exams.map(e => [
-                    e.date, 
-                    e.time, 
-                    e.room, 
-                    e.section, 
-                    `"${e.subject}"`, 
-                    e.instructor, 
-                    e.assignedProctor || 'UNASSIGNED'
+                    getDayLabel(e.date),
+                    e.date || '', 
+                    e.time || '', 
+                    `"${e.subject || ''}"`, 
+                    e.instructor || '', 
+                    e.room || '', 
+                    e.section || '', 
+                    e.assignedProctor || ''
                 ]);
+                
                 const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
                 const encodedUri = encodeURI(csvContent);
                 const link = document.createElement("a");
                 link.setAttribute("href", encodedUri);
-                link.setAttribute("download", "final_exam_proctor_schedule.csv");
+                link.setAttribute("download", "exam_schedule_export.csv");
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                
+                this.showToast('CSV exported successfully! This file can be re-imported.', 'success');
             }
 
             // --- Day & Time Filter Methods ---
