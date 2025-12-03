@@ -1246,9 +1246,30 @@
                 const examTime = TimeUtils.parseRange(examTimeRange);
                 if (!examTime) return false;
 
+                // Helper to normalize dates for comparison
+                const normalizeDate = (dateStr) => {
+                    if (!dateStr) return '';
+                    try {
+                        const d = new Date(dateStr);
+                        if (isNaN(d.getTime())) return dateStr;
+                        const year = d.getFullYear();
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                    } catch (e) {
+                        return dateStr;
+                    }
+                };
+
+                const normalizedExamDate = normalizeDate(examDate);
+
                 return rules.some(rule => {
-                    // Check date matching
-                    if (rule.date && rule.date !== examDate) return false;
+                    // Check date matching - if rule has a specific date, it must match
+                    if (rule.date) {
+                        const normalizedRuleDate = normalizeDate(rule.date);
+                        if (normalizedRuleDate !== normalizedExamDate) return false;
+                    }
+                    // If rule.date is null, it applies to every day
 
                     // Convert rule times to minutes
                     const ruleStart = TimeUtils.toMinutes(rule.start);
@@ -1572,43 +1593,33 @@
                 const exam = this.state.exams.find(e => e.id === examId);
                 if (!exam) return;
 
-                // STRICT VALIDATION CHECKS (same as automatic assignment logic)
+                // STRICT VALIDATION CHECKS - NO BYPASS ALLOWED
                 
-                // Check 1: Availability - BLOCK if proctor is unavailable
+                // Check 1: Availability - HARD BLOCK if proctor is unavailable
                 if (this.isProctorUnavailable(proctorName, exam.date, exam.time)) {
-                    this.showConfirm({
-                        title: "❌ Assignment Blocked",
-                        message: `${proctorName} is marked as UNAVAILABLE during this time slot:\n\n• ${exam.time} on ${exam.date}\n\nPlease check their availability settings or choose another proctor.`,
-                        iconClass: "fa-solid fa-ban",
-                        iconBgClass: "bg-red-100",
-                        iconColorClass: "text-red-600",
-                        btnClass: "bg-blue-600 hover:bg-blue-700 shadow-blue-200",
-                        btnText: "OK",
-                        onConfirm: () => {
-                            this.updateUI(); // Reset the dropdown
-                        }
-                    });
+                    this.showAlert(
+                        "❌ Assignment Blocked",
+                        `${proctorName} is marked as UNAVAILABLE during this time slot:\n\n• ${exam.time} on ${exam.date}\n\nThis proctor cannot be assigned. Please check their availability settings or choose another proctor.`,
+                        'error'
+                    );
+                    // Force reset the dropdown to previous value
+                    this.updateUI();
                     return;
                 }
 
-                // Check 2: Subject Conflict - BLOCK if proctor teaches this subject
+                // Check 2: Subject Conflict - HARD BLOCK if proctor teaches this subject
                 if (this.hasSubjectConflict(proctorName, exam.subject)) {
-                    this.showConfirm({
-                        title: "❌ Assignment Blocked",
-                        message: `${proctorName} teaches "${exam.subject}" and cannot proctor their own subject exam.\n\nThis is the same rule applied by automatic assignment.\n\nPlease choose another proctor.`,
-                        iconClass: "fa-solid fa-book-open",
-                        iconBgClass: "bg-purple-100",
-                        iconColorClass: "text-purple-600",
-                        btnClass: "bg-blue-600 hover:bg-blue-700 shadow-blue-200",
-                        btnText: "OK",
-                        onConfirm: () => {
-                            this.updateUI(); // Reset the dropdown
-                        }
-                    });
+                    this.showAlert(
+                        "❌ Assignment Blocked",
+                        `${proctorName} teaches "${exam.subject}" and cannot proctor their own subject exam.\n\nThis is a strict rule applied by the system.\n\nPlease choose another proctor.`,
+                        'error'
+                    );
+                    // Force reset the dropdown to previous value
+                    this.updateUI();
                     return;
                 }
 
-                // Check 3: Simultaneous Assignment - BLOCK if proctor is already assigned at same time
+                // Check 3: Simultaneous Assignment - HARD BLOCK if proctor is already assigned at same time
                 const simultaneousAssignment = this.state.exams.find(e =>
                     e.id !== examId &&
                     e.date === exam.date &&
@@ -1617,18 +1628,13 @@
                 );
                 
                 if (simultaneousAssignment) {
-                    this.showConfirm({
-                        title: "❌ Assignment Blocked",
-                        message: `${proctorName} is already assigned to proctor another exam at the same time:\n\n• ${simultaneousAssignment.subject}\n• Section: ${simultaneousAssignment.section}\n• Room: ${simultaneousAssignment.room || 'TBA'}\n• Time: ${exam.time}\n\nA proctor cannot be in two places at once.\n\nPlease choose another proctor or unassign them from the other exam first.`,
-                        iconClass: "fa-solid fa-clone",
-                        iconBgClass: "bg-orange-100",
-                        iconColorClass: "text-orange-600",
-                        btnClass: "bg-blue-600 hover:bg-blue-700 shadow-blue-200",
-                        btnText: "OK",
-                        onConfirm: () => {
-                            this.updateUI(); // Reset the dropdown
-                        }
-                    });
+                    this.showAlert(
+                        "❌ Assignment Blocked",
+                        `${proctorName} is already assigned to proctor another exam at the same time:\n\n• ${simultaneousAssignment.subject}\n• Section: ${simultaneousAssignment.section}\n• Room: ${simultaneousAssignment.room || 'TBA'}\n• Time: ${exam.time}\n\nA proctor cannot be in two places at once.\n\nPlease choose another proctor or unassign them from the other exam first.`,
+                        'error'
+                    );
+                    // Force reset the dropdown to previous value
+                    this.updateUI();
                     return;
                 }
 
@@ -2553,15 +2559,22 @@
 
             createExamCardHTML(exam) {
                 const isAssigned = !!exam.assignedProctor;
-                
+
                 const options = [`<option value="">Select Proctor...</option>`]
-                    .concat(this.state.proctors.map(p => {
-                        const selected = exam.assignedProctor === p ? 'selected' : '';
-                        const isConflict = this.hasSubjectConflict(p, exam.subject);
-                        const disabled = isConflict ? 'disabled' : '';
-                        const label = isConflict ? `${p} (Teaches Subject)` : p;
-                        return `<option value="${p}" ${selected} ${disabled} class="${isConflict ? 'text-gray-400 bg-gray-100 italic' : ''}">${label}</option>`;
-                    })).join('');
+                    .concat(this.state.proctors
+                        .filter(p => {
+                            // Filter out proctors who are unavailable at this time
+                            const isUnavailable = this.isProctorUnavailable(p, exam.date, exam.time);
+                            // Filter out proctors who teach this subject
+                            const hasConflict = this.hasSubjectConflict(p, exam.subject);
+                            // Only show if available AND no subject conflict
+                            return !isUnavailable && !hasConflict;
+                        })
+                        .map(p => {
+                            const selected = exam.assignedProctor === p ? 'selected' : '';
+                            return `<option value="${p}" ${selected}>${p}</option>`;
+                        })
+                    ).join('');
 
                 const roomClass = (exam.room === 'TBA' || !exam.room) ? 'text-orange-500 bg-orange-50 border-orange-200' : 'text-slate-500';
 
